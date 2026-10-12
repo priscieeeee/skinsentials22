@@ -628,9 +628,14 @@ server.requestTimeout = 0; server.headersTimeout = 65000;   // allow very large 
 process.on('unhandledRejection', e => console.error('Unhandled error (kept running):', e && e.message || e));
 process.on('uncaughtException', e => console.error('Unexpected error (kept running):', e && e.stack || e));
 setInterval(() => quiet(reconcile()), 5 * 60000).unref(); setTimeout(() => quiet(reconcile()), 15000).unref();
-server.listen(PORT, () => {
-  console.log(`Skinsentials22 running on ${SITE}`);
-  if (!ENV.ADMIN_PASSWORD) console.warn('! ADMIN_PASSWORD is not set: admin login is disabled.');
-  const nt = notifyStatus(); if (!nt.telegram && !nt.webhook && !nt.adminEmail) console.warn('! No order alerts set up (Telegram / email / webhook). You will still see everything live in Admin > Payments.');
-  if (!psKey()) console.warn('! No Paystack secret key yet: online payments are off (bank transfer, pay on delivery and DM still work). Add the key in .env or in Admin > Settings.');
-});
+// Fix for Vercel - don't listen on Vercel
+if (process.env.VERCEL !== '1') {
+  server.listen(PORT, () => {
+    console.log(`Skinsentials22 running on ${SITE}` );
+    if (!ENV.ADMIN_PASSWORD) console.warn('! ADMIN_PASSWORD is not set: admin login is disabled.');
+    const nt = notifyStatus(); if (!nt.telegram && !nt.webhook && !nt.adminEmail) console.warn('! No order alert');
+    if (!psKey()) console.warn('! No Paystack secret key yet: online payments are off (bank transfer, pay on del');
+  });
+}
+
+module.exports = server;
