@@ -4,7 +4,14 @@
 <html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+    <meta name="theme-color" content="#0A111E">
+    <meta name="color-scheme" content="light only">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Skinsentials22">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="format-detection" content="telephone=no">
     <title>SKINSENTIALS22 — Elevate Your Skin</title>
     <link rel="icon" id="favicon" href="data:,">
     <script>
@@ -32,6 +39,7 @@
     
     <script>
         tailwind.config = {
+            future: { hoverOnlyWhenSupported: true },
             theme: {
                 extend: {
                     colors: {
@@ -166,7 +174,7 @@
     <header class="sticky top-0 z-40 glass-panel border-b border-brand-stone/40 transition-all duration-300">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
             <!-- Mobile Menu Toggle -->
-            <button onclick="toggleMobileMenu()" class="lg:hidden text-brand-navy p-2 hover:text-brand-blue focus:outline-none">
+            <button onclick="toggleMobileMenu()" aria-label="Open menu" class="lg:hidden text-brand-navy p-2 hover:text-brand-blue focus:outline-none">
                 <i class="fa-solid fa-bars text-xl"></i>
             </button>
 
@@ -200,7 +208,7 @@
                 <button onclick="openAccount()" class="block text-brand-navy hover:text-brand-blue transition-colors p-1" title="Account" aria-label="Account">
                     <i class="fa-regular fa-user text-lg"></i>
                 </button>
-                <button onclick="toggleCartDrawer()" class="relative text-brand-navy hover:text-brand-blue transition-colors p-1" title="Bag">
+                <button onclick="toggleCartDrawer()" class="relative text-brand-navy hover:text-brand-blue transition-colors p-1" title="Bag" aria-label="Open bag">
                     <i class="fa-solid fa-bag-shopping text-xl"></i>
                     <span id="cart-count" class="absolute -top-1 -right-1 bg-brand-blue text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">0</span>
                 </button>
@@ -209,7 +217,7 @@
     </header>
 
     <!-- MOBILE NAVIGATION DRAWER -->
-    <div id="mobile-menu" class="fixed inset-0 bg-brand-navy/60 z-50 hidden opacity-0 transition-opacity duration-300">
+    <div id="mobile-menu" onclick="if(event.target===this)toggleMobileMenu()" class="fixed inset-0 bg-brand-navy/60 z-50 hidden opacity-0 transition-opacity duration-300">
         <div class="w-4/5 max-w-xs bg-white h-full p-6 flex flex-col justify-between shadow-2xl transform -translate-x-full transition-transform duration-300" id="mobile-menu-content">
             <div>
                 <div class="flex justify-between items-center mb-8 pb-4 border-b border-gray-100">
@@ -3283,6 +3291,257 @@ const zoneOf = st => st === 'Lagos' ? 'lagos' : st === INTL ? 'intl' : NG_STATES
   const _ba = window.buildAdmin;
   if (typeof _ba === 'function') window.buildAdmin = function () { const r = _ba.apply(this, arguments); try { buildGuideAdmin(); adminRender(); } catch (e) { console.error(e); } return r; };
   buildGuideAdmin(); adminRender(); render();
+})();
+</script>
+
+<style id="mobile-layer">
+/* ===== MOBILE LAYER: iPhone + Android (additive, appended last so it wins) ===== */
+:root{color-scheme:light}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;scroll-padding-top:6.5rem}
+body{overflow-x:hidden;overflow-wrap:break-word;-webkit-tap-highlight-color:transparent;min-height:100vh;min-height:100svh;padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+html.sk-lock,html.sk-lock body{overflow:hidden!important;overscroll-behavior:none}
+a,button,[role=button],[onclick],summary,label,select{touch-action:manipulation}
+#toast{pointer-events:none}
+.heart-btn{-webkit-tap-highlight-color:transparent}
+@media (hover:none){button:active,a:active,[onclick]:active{opacity:.85}#catalog-grid>div:hover,#home-featured-products>div:hover{transform:none}}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+
+/* inputs: 16px stops iOS zooming the page on focus */
+@media (max-width:1023px),(pointer:coarse){
+  input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select,textarea{font-size:16px!important}
+  input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=submit]),textarea{-webkit-appearance:none;appearance:none}
+  .adm-in{min-height:44px}
+  input[type=checkbox],input[type=radio]{width:1.15rem;height:1.15rem}
+}
+
+/* ---------- header ---------- */
+@media (max-width:1023px){
+  header{padding-top:env(safe-area-inset-top)}
+  header>.h-20{height:3.5rem!important;gap:.25rem}
+  header>.h-20>button{min-width:40px;min-height:40px;margin-left:-.5rem}
+  header>.h-20>a{min-width:0;flex:1 1 auto;white-space:nowrap;gap:.5rem!important}
+  header>.h-20>div:last-child{flex:none;gap:0}
+  header>.h-20>div:last-child>*+*{margin-left:0!important}
+  header>.h-20>div:last-child>button{min-width:40px;min-height:40px;display:inline-flex;align-items:center;justify-content:center}
+  #cart-count,#like-count{top:2px!important;right:0!important}
+  #announcement-bar button{min-width:36px;min-height:36px}
+  #cat-bar .cat-scroll{-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 10px,#000 calc(100% - 28px),transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 10px,#000 calc(100% - 28px),transparent 100%)}
+  .cat-link{padding:.95rem .8rem}
+}
+@media (max-width:639px){
+  header a .font-serif{font-size:clamp(12px,3.7vw,22px)!important;letter-spacing:.03em!important}
+  header a img[data-logo]{height:2rem!important}
+}
+@media (min-width:640px) and (max-width:1023px){header>.h-20{height:4.25rem!important}}
+@media (max-width:429px){header a img[data-logo]{display:none}}
+@media (max-width:399px){header a span[class*="0.25em"]{display:none}}
+
+/* ---------- slide-in menu ---------- */
+#mobile-menu-content{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-top:calc(1.5rem + env(safe-area-inset-top))!important;padding-bottom:calc(1.5rem + env(safe-area-inset-bottom))!important;justify-content:flex-start!important;gap:1.5rem}
+#mobile-menu nav a,#mobile-menu nav button{min-height:44px;display:flex;align-items:center}
+#mobile-menu nav>*+*{margin-top:.15rem!important}
+#mobile-menu #mm-groups button{width:100%}
+
+/* ---------- floating bits ---------- */
+@media (max-width:639px){
+  #wa-float{left:1rem!important;bottom:calc(1rem + env(safe-area-inset-bottom))!important;width:3rem!important;height:3rem!important}
+  #toast{left:1rem!important;right:1rem!important;bottom:calc(1rem + env(safe-area-inset-bottom))!important}
+  body[data-page="pdp"] #wa-float{bottom:calc(6.5rem + env(safe-area-inset-bottom))!important}
+}
+
+/* ---------- cart drawer: items scroll, checkout button always visible ---------- */
+#cart-drawer>.right-0{height:100vh;height:100dvh;padding-bottom:calc(1.5rem + env(safe-area-inset-bottom))!important;padding-top:calc(1.5rem + env(safe-area-inset-top))!important}
+#cart-drawer>.right-0>div:first-child{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+#cart-items{flex:1 1 auto;min-height:0;max-height:none!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+#cart-items .w-6{width:2rem!important}#cart-items .h-6{height:2rem!important}
+#cart-drawer>.right-0>div:last-child{flex:none}
+
+/* ---------- video product drawer = bottom sheet ---------- */
+#video-drawer>div:last-child{max-height:85vh;max-height:85dvh;overflow-y:auto;overscroll-behavior:contain;padding-bottom:calc(1.5rem + env(safe-area-inset-bottom))}
+@media (min-width:640px){#video-drawer>div:last-child{max-height:none}}
+
+/* ---------- search ---------- */
+#srch>.relative{padding-top:max(1rem,env(safe-area-inset-top))}
+@media (min-width:640px){#srch>.relative{padding-top:1.25rem}}
+#srch-out{max-height:calc(100vh - 7rem)!important;max-height:calc(var(--vvh,100dvh) - 7rem)!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+
+/* ---------- checkout / account / payment detail: bottom sheets on phones ---------- */
+#pay-modal>.relative,#acct>.relative,#payd-body{overscroll-behavior:contain;-webkit-overflow-scrolling:touch;max-height:calc(100vh - 2rem)!important;max-height:calc(100dvh - 2rem)!important}
+@media (max-width:639px){
+  #pay-modal,#acct,#payd{align-items:flex-end!important;padding:0!important}
+  #pay-modal>.relative,#acct>.relative,#payd-body{max-width:none!important;width:100%!important;border-radius:1.25rem 1.25rem 0 0!important;padding-bottom:calc(1.5rem + env(safe-area-inset-bottom))!important;max-height:92vh!important;max-height:92dvh!important}
+}
+
+/* ---------- page spacing ---------- */
+@media (max-width:639px){
+  .page-section .py-20{padding-top:3rem!important;padding-bottom:3rem!important}
+  .page-section .py-16{padding-top:2.5rem!important;padding-bottom:2.5rem!important}
+  .page-section .py-14{padding-top:2.25rem!important;padding-bottom:2.25rem!important}
+  .page-section .py-12{padding-top:2rem!important;padding-bottom:2rem!important}
+  #page-home>div:first-of-type{padding-top:2.5rem;padding-bottom:3rem}
+  #page-home .grid.gap-12{gap:2rem}
+  #page-pdp .gap-12{gap:1.5rem}
+  #page-home h1{font-size:2.15rem;line-height:1.15}
+}
+
+/* hero background: even overlay so text stays readable across the full width on phones */
+@media (max-width:1023px){#hero-bg::after{content:"";position:absolute;inset:0;background:rgba(244,241,234,.45);pointer-events:none}}
+#hero-dots button{position:relative}
+#hero-dots button::before{content:"";position:absolute;inset:-14px -6px}
+
+/* featured guide video: never taller than the screen */
+.fg-slide{height:450px}
+@supports (height:1svh){.fg-slide{height:clamp(320px,64svh,450px)!important}}
+#fg-prev,#fg-next,#fg-play,#fg-mute{min-width:2.25rem;min-height:2.25rem}
+
+/* concern cards */
+@media (max-width:639px){
+  #page-home div[onclick^="filterCatalogByConcern"]{height:11.5rem!important}
+  #page-home div[onclick^="filterCatalogByConcern"]>div{padding:.75rem!important}
+  #page-home div[onclick^="filterCatalogByConcern"] h3{font-size:1rem!important;line-height:1.2}
+}
+
+/* video hub */
+@media (max-width:639px){#video-grid .h-\[420px\]{height:min(420px,68svh)!important}#video-grid{gap:1.25rem}}
+#page-video-hub>div{min-height:85vh;min-height:85svh}
+
+/* ---------- product grids: 2 columns on phones, compact cards ---------- */
+@media (max-width:639px){
+  #catalog-grid,#col-grid,#ing-grid,#home-featured-products{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:.75rem!important}
+  #catalog-grid .h-64,#col-grid .h-64,#ing-grid .h-64{height:auto!important;aspect-ratio:1/1}
+  #catalog-grid .p-5,#col-grid .p-5,#ing-grid .p-5{padding:.7rem!important}
+  #catalog-grid .pt-0,#col-grid .pt-0,#ing-grid .pt-0{padding-top:0!important}
+  #catalog-grid .p-5.pt-0,#col-grid .p-5.pt-0,#ing-grid .p-5.pt-0{flex-direction:column;align-items:stretch!important;gap:.5rem}
+  #catalog-grid .p-5.pt-0>span.flex,#col-grid .p-5.pt-0>span.flex,#ing-grid .p-5.pt-0>span.flex{flex-wrap:wrap;gap:.25rem;justify-content:space-between}
+  #catalog-grid .p-5.pt-0 button,#col-grid .p-5.pt-0 button,#ing-grid .p-5.pt-0 button{flex:1 1 100%;min-height:40px;padding:.55rem .5rem!important}
+  #catalog-grid h3,#col-grid h3,#ing-grid h3{font-size:.95rem!important;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  #catalog-grid .space-y-2>*+*,#col-grid .space-y-2>*+*,#ing-grid .space-y-2>*+*{margin-top:.3rem!important}
+  #home-featured-products>div{padding:.7rem!important}
+  #home-featured-products .h-48{height:auto!important;aspect-ratio:1/1;margin-bottom:.6rem!important}
+  #home-featured-products h4{font-size:.9rem!important;line-height:1.25}
+  #home-featured-products .justify-between{flex-wrap:wrap;gap:.2rem}
+  .heart-btn{top:.5rem;right:.5rem;width:2.25rem;height:2.25rem}
+}
+
+/* catalog toolbar + filter chips */
+@media (max-width:767px){
+  #catalog-sort{width:100%}
+  #catalog-sort,#page-catalog .relative.flex-1{max-width:none}
+  #page-catalog .flex.flex-wrap.items-center{width:100%}
+}
+@media (max-width:1023px){
+  #filter-chips{flex-wrap:nowrap!important;overflow-x:auto;margin-inline:-1rem;padding-inline:1rem;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  #filter-chips::-webkit-scrollbar{display:none}
+  #filter-chips>*{flex:none;white-space:nowrap;min-height:40px}
+  .mn-chip{min-height:40px}
+}
+
+/* ---------- product page ---------- */
+button[onclick^="adjustPdpQty"]{min-width:2.25rem;min-height:2.25rem}
+@media (max-width:1023px){
+  #page-pdp .pt-4.border-t:has(#pdp-add-btn){position:sticky;bottom:calc(.75rem + env(safe-area-inset-bottom));z-index:20;background:#fff;border:1px solid #E8E5DF;border-radius:1rem;padding:.75rem;box-shadow:0 8px 24px rgba(10,17,30,.18)}
+  #page-pdp #pdp-thumbnails{gap:.5rem}
+  #pdp-add-btn{min-width:0}
+  #pdp-heart{width:3rem;height:3rem}
+}
+
+/* ---------- forms and small pages ---------- */
+@media (max-width:639px){
+  #page-consult .grid.grid-cols-2{grid-template-columns:1fr!important}
+  #gc-amts button{font-size:.8rem;padding-inline:.15rem}
+  #gc-preview{font-size:clamp(2.25rem,12vw,3.75rem)!important}
+  #page-giftcard .aspect-\[16\/10\]{padding:1.25rem!important}
+  #page-quiz>div{padding-top:1.5rem;padding-bottom:1.5rem}
+  #page-quiz button{min-height:52px}
+  #page-app .w-72{width:min(18rem,100%)}
+  #page-app .h-\[520px\]{height:min(520px,70svh)!important}
+}
+
+/* ---------- footer ---------- */
+@media (max-width:767px){
+  footer{padding-top:2.5rem!important;padding-bottom:calc(5rem + env(safe-area-inset-bottom))!important}
+  footer .grid.grid-cols-1{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:2rem 1.25rem!important}
+  footer .grid.grid-cols-1>div:first-child,footer .grid.grid-cols-1>div:last-child{grid-column:1/-1}
+  footer ul li a{padding-block:.35rem;display:inline-flex;align-items:center}
+  footer input{min-width:0}
+  footer button{min-height:44px}
+}
+
+/* ---------- admin dashboard ---------- */
+#admin-login,#admin-app{min-height:100vh;min-height:100dvh}
+@media (max-width:1023px){
+  #admin-app aside{flex-wrap:nowrap!important;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:sticky;top:0;z-index:30;gap:.25rem;padding:.5rem calc(.5rem + env(safe-area-inset-right)) .5rem calc(.5rem + env(safe-area-inset-left))}
+  #admin-app aside::-webkit-scrollbar{display:none}
+  #admin-app aside>*{flex:none}
+  #admin-app aside .adm-tab-btn{white-space:nowrap;min-height:40px}
+  #admin-app aside>div{margin-left:auto;flex-direction:row}
+  #admin-app aside>span img{height:2rem}
+  #admin-app .overflow-x-auto{-webkit-overflow-scrolling:touch}
+  #admin-app table{min-width:520px}
+  #admin-app h1.font-serif{font-size:1.6rem}
+}
+@media (max-width:639px){#admin-app .grid.sm\:grid-cols-2>*{min-width:0}#admin-app button{min-height:40px}}
+</style>
+
+<script id="mobile-layer-js">
+/* ===== MOBILE LAYER (additive): scroll lock, keyboard handling, Back button, lazy images ===== */
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id), root = document.documentElement;
+
+  /* 1. lock page scroll behind any open drawer / modal / search */
+  const OV = ['mobile-menu', 'cart-drawer', 'video-drawer', 'pay-modal', 'acct', 'srch', 'payd'];
+  const syncLock = () => root.classList.toggle('sk-lock', OV.some(id => { const e = $(id); return e && !e.classList.contains('hidden'); }));
+  new MutationObserver(syncLock).observe(document.body, {subtree: true, childList: true, attributes: true, attributeFilter: ['class']});
+
+  /* 2. real visible height (shrinks when the keyboard opens) */
+  const vv = window.visualViewport, setVh = () => root.style.setProperty('--vvh', (vv ? vv.height : window.innerHeight) + 'px');
+  setVh(); (vv || window).addEventListener('resize', setVh);
+
+  /* 3. keyboard helpers: keep the focused field in view, sensible keyboards */
+  ['srch-q', 'catalog-search', 'ing-q'].forEach(id => { const e = $(id); if (e) { e.setAttribute('enterkeyhint', 'search'); e.setAttribute('autocorrect', 'off'); } });
+  document.addEventListener('focusin', e => {
+    const t = e.target; if (!t.matches || !t.matches('input,textarea,select')) return;
+    if (t.type === 'email') { t.setAttribute('autocapitalize', 'none'); t.setAttribute('autocorrect', 'off'); t.spellcheck = false; }
+    if (t.type === 'password') t.setAttribute('autocapitalize', 'none');
+    if (t.closest('#pay-modal,#acct,#payd-body,#srch,#cart-drawer')) setTimeout(() => { try { t.scrollIntoView({block: 'center', behavior: 'smooth'}); } catch (_) {} }, 350);
+  });
+
+  /* 4. Back button / iOS edge-swipe goes to the previous page of the shop instead of leaving the site */
+  const closers = {'mobile-menu': () => toggleMobileMenu(), 'cart-drawer': () => toggleCartDrawer(), 'video-drawer': () => closeVideoProductDrawer(), 'pay-modal': () => closePay(), 'acct': () => closeAccount(), 'srch': () => closeSearch()};
+  let pop = false;
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  const baseNav = window.navigateTo;
+  window.navigateTo = function (pg) {
+    const r = baseNav.apply(this, arguments);
+    document.body.dataset.page = pg;
+    if (!pop && pg && location.hash !== '#' + pg) { try { history.pushState({pg: pg}, '', '#' + pg); } catch (_) {} }
+    setTimeout(() => { const a = document.querySelector('#cat-bar .cat-link.on'); if (a && a.scrollIntoView) { try { a.scrollIntoView({inline: 'center', block: 'nearest', behavior: 'smooth'}); } catch (_) {} } }, 60);
+    return r;
+  };
+  window.addEventListener('popstate', e => {
+    Object.keys(closers).forEach(id => { const el = $(id); if (el && !el.classList.contains('hidden')) { try { closers[id](); } catch (_) {} } });
+    const pg = (e.state && e.state.pg) || location.hash.slice(1) || 'home';
+    pop = true; try { window.navigateTo($('page-' + pg) ? pg : 'home'); } finally { pop = false; }
+  });
+  window.addEventListener('load', () => setTimeout(() => {
+    const h = location.hash.slice(1);
+    if (['catalog', 'video-hub', 'quiz', 'app', 'consult'].includes(h)) { pop = true; try { window.navigateTo(h); } finally { pop = false; } }
+    /* home-screen icon for iPhone / Android */
+    const f = $('favicon'); if (f && f.href && !document.querySelector('link[rel="apple-touch-icon"]')) { const l = document.createElement('link'); l.rel = 'apple-touch-icon'; l.href = f.href; document.head.appendChild(l); }
+  }, 0));
+
+  /* 5. load pictures only when they scroll near the screen (saves mobile data) */
+  const SKIP = '[data-s],[data-logo],#pdp-main-image,#fg img';
+  const lazy = n => { if (n.nodeType !== 1) return; const list = n.tagName === 'IMG' ? [n] : n.querySelectorAll ? n.querySelectorAll('img') : []; list.forEach(i => { if (i.hasAttribute('loading') || i.matches(SKIP) || i.closest('header')) return; i.loading = 'lazy'; i.decoding = 'async'; }); };
+  lazy(document.body);
+  new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(lazy))).observe(document.body, {childList: true, subtree: true});
+
+  /* 6. concern cards: usable with keyboard / screen readers too */
+  document.querySelectorAll('[onclick^="filterCatalogByConcern"]').forEach(el => {
+    el.setAttribute('role', 'button'); el.tabIndex = 0;
+    el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); } });
+  });
 })();
 </script>
 
