@@ -1,0 +1,9 @@
+{
+  "name": "skinsentials22-store",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Skinsentials22 store: accounts, delivery zones, payments ledger, admin dashboard",
+  "main": "server.js",
+  "scripts": { "start": "node --no-warnings server.js" },
+  "engines": { "node": ">=22.5.0" }
+}

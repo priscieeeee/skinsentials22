@@ -1,0 +1,117 @@
+--- a/server.js	2026-11-08 18:59:54.142526000 +0000
++++ b/server.js	2026-11-08 19:09:32.928197969 +0000
+@@ -90,7 +90,7 @@
+ }
+ setInterval(() => { const t = now(); for (const [k, v] of hits) if (!v.some(x => t - x < 60000)) hits.delete(k); }, 60000).unref();
+ const userOut = u => ({ id: u.id, name: u.name, email: u.email, phone: u.phone, address: u.address || '', created: u.created, newsletter: !!db.prepare('SELECT active FROM subscribers WHERE email=? AND active=1').get(u.email) });
+-const orderOut = o => ({ id: '#' + (1000 + o.id), ref: o.ref, customer: o.customer, email: o.email, phone: o.phone, address: o.address, items: o.item_count, lines: JSON.parse(o.items), total: o.total, shipping: o.shipping || 0, state: o.state || '', zone: o.zone || '', method: o.method, status: o.status, paid: !!o.paid, claimed: !!o.claimed, note: o.note, date: o.created, payment: o.pstatus ? { id: o.pid, status: o.pstatus, channel: o.pchannel, detail: o.pdetail, fees: o.pfees, received: o.preceived } : null });
++const orderOut = o => ({ id: '#' + (1000 + o.id), ref: o.ref, customer: o.customer, email: o.email, phone: o.phone, address: o.address, items: o.item_count, lines: JSON.parse(o.items), total: o.total, discount: o.discount || 0, credit: o.credit_used || 0, shipping: o.shipping || 0, state: o.state || '', zone: o.zone || '', method: o.method, status: o.status, paid: !!o.paid, claimed: !!o.claimed, note: o.note, date: o.created, payment: o.pstatus ? { id: o.pid, status: o.pstatus, channel: o.pchannel, detail: o.pdetail, fees: o.pfees, received: o.preceived } : null });
+ 
+ function subscribe(email, name) {
+   const ex = db.prepare('SELECT * FROM subscribers WHERE email=?').get(email);
+@@ -118,8 +118,11 @@
+   const rs = await Promise.allSettled(jobs); rs.forEach(r => r.status === 'rejected' && console.error('Admin notification failed:', r.reason.message)); return rs.every(r => r.status === 'fulfilled') && jobs.length > 0;
+ }
+ const mailShell = (h, body) => `<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#1b2a3a"><h2 style="font-family:Georgia,serif">SKINSENTIALS22</h2><h3>${h}</h3>${body}<p style="color:#778;font-size:12px;margin-top:24px">Questions? Reply to this email or message us on WhatsApp.</p></div>`;
+-const linesHtml = o => `<table style="width:100%;border-collapse:collapse;font-size:14px">${JSON.parse(o.items).map(i => `<tr><td style="padding:4px 0">${i.qty} × ${hx(i.name)}</td><td style="text-align:right">${naira(i.price * i.qty)}</td></tr>`).join('')}${o.shipping ? `<tr><td style="padding:4px 0">Delivery</td><td style="text-align:right">${naira(o.shipping)}</td></tr>` : ''}<tr><td style="padding-top:8px;border-top:1px solid #ddd"><b>Total</b></td><td style="text-align:right;border-top:1px solid #ddd"><b>${naira(o.total)}</b></td></tr></table>`;
++const linesHtml = o => `<table style="width:100%;border-collapse:collapse;font-size:14px">${JSON.parse(o.items).map(i => `<tr><td style="padding:4px 0">${i.qty} × ${hx(i.name)}</td><td style="text-align:right">${naira(i.price * i.qty)}</td></tr>`).join('')}${o.discount ? `<tr><td style="padding:4px 0">Referral offer</td><td style="text-align:right">-${naira(o.discount)}</td></tr>` : ''}${o.credit_used ? `<tr><td style="padding:4px 0">Store credit</td><td style="text-align:right">-${naira(o.credit_used)}</td></tr>` : ''}${o.shipping ? `<tr><td style="padding:4px 0">Delivery</td><td style="text-align:right">${naira(o.shipping)}</td></tr>` : ''}<tr><td style="padding-top:8px;border-top:1px solid #ddd"><b>Total</b></td><td style="text-align:right;border-top:1px solid #ddd"><b>${naira(o.total)}</b></td></tr></table>`;
+ const quiet = p => { Promise.resolve(p).catch(e => console.error('Background task failed:', e.message)); };
++/* referral programme (see referral.js). Hooks are fenced so a referral problem can never break an order or a payment. */
++let REF = null;
++const refHook = (fn, ...a) => { try { if (REF) REF[fn](...a); } catch (e) { console.error('Referral hook failed (' + fn + '):', e.message); } };
+ 
+ /* ---------- payments ---------- */
+ async function paystack(method, url, body) {
+@@ -144,13 +147,14 @@
+     db.prepare('UPDATE orders SET paid=1, paid_at=? WHERE id=?').run(t, o.id);
+     ev(p.id, 'paid', `${naira(got)} received via ${label(o.method)}${i.channel ? ' (' + i.channel + ')' : ''}${i.by && i.by !== 'paystack' ? ', confirmed by ' + i.by : ''}`, 1);
+   });
++  refHook('onPaid', o);
+   quiet(notifyAdmin(`💰 Payment received: ${naira(got)}`, [`Order ${oid(o)} · ${o.customer}`, `Method: ${label(o.method)}${i.channel ? ' (' + i.channel + ')' : ''}`, `Reference: ${o.ref}`]));
+   quiet(sendMail(o.email, `Payment received for order ${oid(o)}`, mailShell('Thank you! We have received your payment.', `<p>Hi ${hx(o.customer)}, your order <b>${oid(o)}</b> is confirmed and we are getting it ready.</p>${linesHtml(o)}<p>Delivery to: ${hx(o.address)}${o.state ? ', ' + hx(o.state) : ''}</p><p style="color:#778">Reference ${hx(o.ref)}</p>`)));
+   return true;
+ }
+ function unsettle(o, note) {
+   const p = payOf(o.id); if (!p || p.status !== 'paid') return false;
+-  tx(() => { db.prepare("UPDATE payments SET status='pending', received=0, paid_at=NULL, confirmed_by='', updated=? WHERE id=?").run(now(), p.id); db.prepare('UPDATE orders SET paid=0, paid_at=NULL WHERE id=?').run(o.id); ev(p.id, 'unpaid', 'Marked as not paid by admin' + (note ? ': ' + note : '')); }); return true;
++  tx(() => { db.prepare("UPDATE payments SET status='pending', received=0, paid_at=NULL, confirmed_by='', updated=? WHERE id=?").run(now(), p.id); db.prepare('UPDATE orders SET paid=0, paid_at=NULL WHERE id=?').run(o.id); ev(p.id, 'unpaid', 'Marked as not paid by admin' + (note ? ': ' + note : '')); }); refHook('onReverse', o, 'Payment marked as not received', 'unpaid'); return true;
+ }
+ function applyPaystack(o, d) {
+   const p = payOf(o.id); if (!p) return false;
+@@ -175,6 +179,7 @@
+   const p = payOf(o.id);
+   tx(() => { db.prepare("UPDATE orders SET status='Cancelled' WHERE id=?").run(o.id); if (p && ['pending', 'review', 'mismatch'].includes(p.status)) { db.prepare("UPDATE payments SET status='cancelled', updated=? WHERE id=?").run(now(), p.id); ev(p.id, 'cancelled', why || 'Order cancelled'); } });
+   if (!p || p.status !== 'paid') restock(db.prepare('SELECT * FROM orders WHERE id=?').get(o.id));
++  refHook('onReverse', o, why || 'Order cancelled', 'void');
+ }
+ function dmLinks(o, s) {
+   const lines = JSON.parse(o.items).map(i => `${i.qty}x ${i.name}`).join(', ');
+@@ -331,7 +336,9 @@
+     if (zone === 'intl') throw new HttpError(422, deliveryCfg(s).intlNote);
+     const seen = detectPlace(address); if (zone === 'lagos' && seen && seen !== 'Lagos' && seen !== INTL && !/lagos/i.test(address)) throw new HttpError(400, `Your address looks like it is in ${seen}, but Lagos is selected. Please check your state so the delivery fee is right.`);
+   } else { state = state || 'Lagos'; zone = zoneOf(state) || 'lagos'; }
+-  const shipping = shipFor(s, zone, total, physical); total += shipping;
++  const sub = total, shipping = shipFor(s, zone, sub, physical);
++  const rp = REF ? REF.price({ code: str(body.referral, 20).toUpperCase(), useCredit: !!body.useCredit && !!user, strict: true, user, email, phone, address, lines, sub, ship: shipping, state, method }) : { discount: 0, credit: 0, flags: [] };   // discount and credit are decided here, never by the browser
++  total = sub - rp.discount - rp.credit + shipping;
+   const ref = 'SK22-' + crypto.randomBytes(5).toString('hex').toUpperCase();
+   let authUrl = '';
+   if (!PM[method].manual) { const b2 = { email, amount: total * 100, currency: 'NGN', reference: ref, callback_url: `${SITE}/?pay=${ref}`, metadata: { customer, phone, method } }; if (PM[method].ps) b2.channels = PM[method].ps; authUrl = (await paystack('POST', '/transaction/initialize', b2)).authorization_url; }
+@@ -341,9 +348,10 @@
+     const t = now(), info = db.prepare('INSERT INTO orders(ref,user_id,customer,email,phone,address,items,item_count,total,shipping,method,created,state,zone) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(ref, user ? user.id : null, customer, email, phone, address, JSON.stringify(lines), count, total, shipping, method, t, state, zone);
+     const pid = db.prepare('INSERT INTO payments(order_id,ref,method,amount,status,created,updated) VALUES(?,?,?,?,?,?,?)').run(info.lastInsertRowid, ref, method, total, 'pending', t, t).lastInsertRowid;
+     ev(pid, 'order', `New order: ${naira(total)} via ${label(method)}${PM[method].manual ? '' : ', waiting for the customer to pay'}`, 1);
++    if (REF) REF.attach(info.lastInsertRowid, rp, user);
+     return db.prepare('SELECT * FROM orders WHERE id=?').get(info.lastInsertRowid);
+   });
+-  const out = { ref, id: oid(o), total, shipping, method, state, zone, eta: physical ? etaText(s, zone) : '' };
++  const out = { ref, id: oid(o), total, discount: rp.discount, credit: rp.credit, shipping, method, state, zone, eta: physical ? etaText(s, zone) : '' };
+   if (!PM[method].manual) out.authorization_url = authUrl;
+   else if (method === 'transfer') { const accs = accountsOf(s); out.bank = { ...accs[0], narration: ref }; out.accounts = accs; }
+   else if (method === 'cod') out.cod = { note: s.cod_note || '' };
+@@ -370,6 +378,7 @@
+   const sig = crypto.createHmac('sha512', key).update(raw).digest('hex'), given = String(req.headers['x-paystack-signature'] || '');
+   if (sig.length !== given.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(given))) throw new HttpError(401, 'Bad signature');
+   const evt = JSON.parse(raw.toString() || '{}');
++  if (evt.event === 'charge.dispute.create') { const o = orderBy(str(evt.data && evt.data.transaction && evt.data.transaction.reference, 40)); if (o) refHook('onReverse', o, 'Chargeback opened with the payment provider', 'hold'); }
+   if (evt.event === 'charge.success') { const o = orderBy(str(evt.data && evt.data.reference, 40)); if (o) await verifyOnline(o).catch(e => console.error('Webhook verify failed:', e.message)); }
+   return { ok: true };
+ });
+@@ -495,7 +504,7 @@
+   const note = str(body.note, 300); let how = 'Refund recorded (send the money back yourself)';
+   if (!PM[p.method].manual) { await paystack('POST', '/refund', { transaction: p.ref }); how = 'Refund sent through Paystack (the customer is credited within a few days)'; }
+   tx(() => { db.prepare("UPDATE payments SET status='refunded', note=COALESCE(NULLIF(?,''),note), updated=? WHERE id=?").run(note, now(), p.id); db.prepare("UPDATE orders SET status='Cancelled', paid=0 WHERE id=?").run(o.id); ev(p.id, 'refunded', `${naira(p.amount)} refunded. ${how}${note ? '. ' + note : ''}`, 1); });
+-  restock(db.prepare('SELECT * FROM orders WHERE id=?').get(o.id)); return payDetail(p.id);
++  restock(db.prepare('SELECT * FROM orders WHERE id=?').get(o.id)); refHook('onReverse', o, 'Order refunded', 'void'); return payDetail(p.id);
+ });
+ /* the dashboard polls this for live alerts: new orders, payments received, transfers to confirm, mismatches */
+ route('GET', '/api/admin/events', { auth: 'admin' }, ({ query }) => {
+@@ -510,7 +519,7 @@
+ });
+ route('GET', '/api/admin/backup', { auth: 'admin' }, () => {
+   const strip = r => { const { pw, ...x } = r; return x; };
+-  return { file: { name: 'skinsentials22-backup-' + new Date().toISOString().slice(0, 10) + '.json', type: 'application/json', data: JSON.stringify({ exported: new Date().toISOString(), products: productsAll(), stock: [...stockMap()], orders: db.prepare('SELECT * FROM orders ORDER BY id').all(), payments: db.prepare('SELECT * FROM payments ORDER BY id').all(), payment_events: db.prepare('SELECT * FROM payment_events ORDER BY id').all(), users: db.prepare('SELECT * FROM users').all().map(strip), subscribers: db.prepare('SELECT * FROM subscribers').all(), brands: db.prepare('SELECT * FROM brands').all(), settings: getSettings(), content: contentRaw() }, null, 1) } };
++  return { file: { name: 'skinsentials22-backup-' + new Date().toISOString().slice(0, 10) + '.json', type: 'application/json', data: JSON.stringify({ exported: new Date().toISOString(), products: productsAll(), stock: [...stockMap()], orders: db.prepare('SELECT * FROM orders ORDER BY id').all(), payments: db.prepare('SELECT * FROM payments ORDER BY id').all(), payment_events: db.prepare('SELECT * FROM payment_events ORDER BY id').all(), users: db.prepare('SELECT * FROM users').all().map(strip), subscribers: db.prepare('SELECT * FROM subscribers').all(), brands: db.prepare('SELECT * FROM brands').all(), settings: getSettings(), content: contentRaw(), referral: Object.fromEntries(['ref_versions', 'ref_codes', 'ref_people', 'ref_orders', 'ref_ledger', 'ref_events', 'ref_flags', 'ref_audit'].map(t => [t, db.prepare('SELECT * FROM ' + t).all()])) }, null, 1) } };
+ });
+ 
+ /* brands (name -> logo) */
+@@ -562,6 +571,9 @@
+   await paystack('GET', '/balance'); return { ok: true, ...psInfo() };
+ });
+ 
++/* ---------- referral programme (disabled until an admin activates it) ---------- */
++REF = require('./referral')({ db, route, tx, now, str, HttpError, naira, csvCell, hx, sendMail, mailShell, quiet, productsAll, shipFor, zoneOf, getSettings, PM, crypto, SITE, mailOn, SECRET });
++
+ /* ---------- server ---------- */
+ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.webp': 'image/webp', '.gif': 'image/gif', '.txt': 'text/plain', '.mp4': 'video/mp4', '.m4v': 'video/mp4', '.mov': 'video/quicktime', '.webm': 'video/webm', '.ogv': 'video/ogg', '.jpeg': 'image/jpeg' };
+ function readBody(req, max) {
+--- a/public/index.html	2026-11-08 18:58:12.829860000 +0000
++++ b/public/index.html	2026-11-08 19:09:14.975081968 +0000
+@@ -3900,5 +3900,6 @@
+ </script>
+ <!-- POLICIES-LAYER:END -->
+ 
++<script src="/referral.js" defer></script>
+ </body>
+ </html>
+\ No newline at end of file

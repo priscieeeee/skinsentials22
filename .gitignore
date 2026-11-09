@@ -1,0 +1,4 @@
+gitnode_modules
+.env
+.git
+data/

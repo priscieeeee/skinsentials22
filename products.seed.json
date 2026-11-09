@@ -1,0 +1,94 @@
+[
+ {
+  "id": "p1",
+  "name": "Barrier Gel Glass-Moisturizer",
+  "category": "dry",
+  "price": 57000,
+  "rating": 4.9,
+  "image": "https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=600&q=80",
+  "hasVideo": true,
+  "tag": "Hydration Step",
+  "description": "A lightweight gel cream enriched with 5 ceramides and multi-molecular Hyaluronic Acid for 24-hour hydration without pore-clogging heavy oils.",
+  "ingredients": "Ceramide NP, Hyaluronic Acid (0.5%), Glycerin, Centella Asiatica Extract.",
+  "usage": "Gently press 1-2 pumps onto damp skin every AM and PM after applying active serums.",
+  "usageSteps": [
+   "Cleanse your face and leave the skin slightly damp.",
+   "Apply any active serum first and let it settle for a minute.",
+   "Press 1-2 pumps of the gel cream onto your face and neck.",
+   "Smooth in with gentle upward strokes until absorbed.",
+   "Use every morning and night, adding sunscreen in the daytime."
+  ],
+  "usageWhen": "Morning & night",
+  "usageTips": "Damp skin helps the hyaluronic acid hold on to water. Layer it over serums, never under them.",
+  "usageWarn": "Patch test on your inner arm 24 hours before first use. Stop use if redness or stinging continues."
+ },
+ {
+  "id": "p2",
+  "name": "15% Vitamin C Glow Concentrate",
+  "category": "brightening",
+  "price": 69000,
+  "rating": 4.8,
+  "image": "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=600&q=80",
+  "hasVideo": true,
+  "tag": "Treatment Step",
+  "description": "Potent 15% pure L-Ascorbic Acid stabilized with Ferulic Acid to visibly fade discoloration and defend skin against urban environmental oxidative stress.",
+  "ingredients": "L-Ascorbic Acid 15%, Ferulic Acid 0.5%, Vitamin E, Hyaluronic Acid.",
+  "usage": "Apply 3-4 drops in the morning on cleansed skin prior to moisturizer and sunscreen.",
+  "usageSteps": [
+   "Cleanse and pat skin dry.",
+   "Place 3-4 drops on your fingertips.",
+   "Press, do not rub, over the face and neck, avoiding the eye area.",
+   "Wait a minute, then apply moisturizer.",
+   "Finish with sunscreen every morning."
+  ],
+  "usageWhen": "Morning",
+  "usageTips": "Vitamin C works best with SPF in the daytime. Store it somewhere cool and dark, and stop using it if it turns dark orange or brown.",
+  "usageWarn": "A slight tingle is normal when you start. If it burns or stays red, use it every other day or stop. Patch test first."
+ },
+ {
+  "id": "p3",
+  "name": "Gentle Melt Cleansing Balm",
+  "category": "sensitive",
+  "price": 48000,
+  "rating": 4.7,
+  "image": "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=600&q=80",
+  "hasVideo": true,
+  "tag": "Cleansing Step",
+  "description": "Nourishing oil balm cleanser that effortlessly dissolves long-wear sunscreen and waterproof makeup while supporting natural skin lipid barriers.",
+  "ingredients": "Sunflower Seed Oil, Oat Kernel Extract, Squalane, Vitamin E.",
+  "usage": "Massage onto dry skin to melt makeup, emulsify with warm water, and rinse thoroughly.",
+  "usageSteps": [
+   "Start with dry hands and a dry face.",
+   "Warm a small amount between your palms.",
+   "Massage over your face for 60 seconds to melt sunscreen and makeup.",
+   "Wet your hands and keep massaging until the balm turns milky.",
+   "Rinse thoroughly with lukewarm water and pat dry."
+  ],
+  "usageWhen": "Evening",
+  "usageTips": "Use it on dry skin first. Water at the start stops the oils from lifting makeup.",
+  "usageWarn": "Close your eyes while massaging near the eye area. Rinse with water if it gets in."
+ },
+ {
+  "id": "p4",
+  "name": "Calming BHA Clarifying Solution",
+  "category": "oily",
+  "price": 51000,
+  "rating": 4.6,
+  "image": "https://images.unsplash.com/photo-1512290900673-70023421523b?auto=format&fit=crop&w=600&q=80",
+  "hasVideo": false,
+  "tag": "Exfoliating Step",
+  "description": "2% Salicylic Acid liquid exfoliant that gently unclogs congested pores, smooths rough texture, and minimizes surface sebum shine.",
+  "ingredients": "Salicylic Acid 2%, Green Tea Extract, Allantoin, Niacinamide.",
+  "usage": "Saturate a cotton pad and sweep across face 2-3 times per week at night.",
+  "usageSteps": [
+   "Cleanse and pat skin completely dry.",
+   "Saturate a cotton pad with the solution.",
+   "Sweep across the face, focusing on the nose, chin and forehead. Avoid the eyes and lips.",
+   "Leave on, do not rinse.",
+   "Follow with moisturizer."
+  ],
+  "usageWhen": "Night, 2 to 3 times a week",
+  "usageTips": "Start with 2 nights a week and build up only if your skin stays comfortable.",
+  "usageWarn": "Wear sunscreen the next morning. Do not use with other strong exfoliants on the same night."
+ }
+]
