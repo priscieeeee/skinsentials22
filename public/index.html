@@ -335,60 +335,13 @@
                 </div>
             </div>
 
-            <!-- Shop By Concern Grid -->
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-                <div class="text-center max-w-2xl mx-auto mb-12 space-y-2">
-                    <h2 class="font-serif text-3xl sm:text-4xl font-bold text-brand-navy">Shop by Skin Concern</h2>
-                    <p class="text-brand-slate text-sm font-light">Target specific goals with clean, effective formulations.</p>
-                </div>
-
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-                    <div onclick="filterCatalogByConcern('dry')" class="cursor-pointer group relative rounded-xl overflow-hidden h-64 shadow-sm hover:shadow-md transition-shadow">
-                        <img src="https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=600&q=80" alt="Dry Skin" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-                        <div class="absolute inset-0 bg-brand-navy/30 group-hover:bg-brand-navy/40 transition-colors flex items-end p-5">
-                            <div>
-                                <h3 class="text-white font-serif text-xl font-bold">Hydration & Dryness</h3>
-                                <p class="text-white/80 text-xs">Restore moisture</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div onclick="filterCatalogByConcern('acne')" class="cursor-pointer group relative rounded-xl overflow-hidden h-64 shadow-sm hover:shadow-md transition-shadow">
-                        <img src="https://images.unsplash.com/photo-1512290900673-70023421523b?auto=format&fit=crop&w=600&q=80" alt="Acne Prone" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-                        <div class="absolute inset-0 bg-brand-navy/30 group-hover:bg-brand-navy/40 transition-colors flex items-end p-5">
-                            <div>
-                                <h3 class="text-white font-serif text-xl font-bold">Blemish Control</h3>
-                                <p class="text-white/80 text-xs">Clarify & soothe</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div onclick="filterCatalogByConcern('aging')" class="cursor-pointer group relative rounded-xl overflow-hidden h-64 shadow-sm hover:shadow-md transition-shadow">
-                        <img src="https://images.unsplash.com/photo-1608248597261-8332596a7d49?auto=format&fit=crop&w=600&q=80" alt="Signs of Aging" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-                        <div class="absolute inset-0 bg-brand-navy/30 group-hover:bg-brand-navy/40 transition-colors flex items-end p-5">
-                            <div>
-                                <h3 class="text-white font-serif text-xl font-bold">Signs of Aging</h3>
-                                <p class="text-white/80 text-xs">Firm & renew</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div onclick="filterCatalogByConcern('sensitive')" class="cursor-pointer group relative rounded-xl overflow-hidden h-64 shadow-sm hover:shadow-md transition-shadow">
-                        <img src="https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=600&q=80" alt="Sensitive Skin" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-                        <div class="absolute inset-0 bg-brand-navy/30 group-hover:bg-brand-navy/40 transition-colors flex items-end p-5">
-                            <div>
-                                <h3 class="text-white font-serif text-xl font-bold">Barrier Support</h3>
-                                <p class="text-white/80 text-xs">Calm redness</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Featured Products Rail -->
             <div class="bg-brand-ivory/60 py-20 border-t border-brand-stone/40">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-10 gap-4">
                         <div>
                             <span class="text-xs font-bold text-brand-blue uppercase tracking-widest">Curated Essentials</span>
-                            <h2 class="font-serif text-3xl font-bold text-brand-navy">Trending Innovations</h2>
+                            <h2 class="font-serif text-3xl font-bold text-brand-navy">Shop Our Products</h2>
                         </div>
                         <a href="#catalog" onclick="navigateTo('catalog')" class="text-sm font-semibold text-brand-blue hover:text-brand-navy flex items-center gap-1">
                             <span>View Full Catalog</span>
@@ -1087,64 +1040,7 @@
 
     <script>
         // GLOBAL PRODUCTS DATABASE
-        const PRODUCTS = [
-            {
-                id: 'p1',
-                name: 'Barrier Gel Glass-Moisturizer',
-                category: 'dry',
-                price: 57000,
-                rating: 4.9,
-                image: 'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=600&q=80',
-                hasVideo: true,
-                tag: 'Hydration Step',
-                description: 'A lightweight gel cream enriched with 5 ceramides and multi-molecular Hyaluronic Acid for 24-hour hydration without pore-clogging heavy oils.',
-                ingredients: 'Ceramide NP, Hyaluronic Acid (0.5%), Glycerin, Centella Asiatica Extract.',
-                usage: 'Gently press 1-2 pumps onto damp skin every AM and PM after applying active serums.',
-                usageSteps: ["Cleanse your face and leave the skin slightly damp.", "Apply any active serum first and let it settle for a minute.", "Press 1-2 pumps of the gel cream onto your face and neck.", "Smooth in with gentle upward strokes until absorbed.", "Use every morning and night, adding sunscreen in the daytime."], usageWhen: 'Morning & night', usageTips: 'Damp skin helps the hyaluronic acid hold on to water. Layer it over serums, never under them.', usageWarn: 'Patch test on your inner arm 24 hours before first use. Stop use if redness or stinging continues.'
-            },
-            {
-                id: 'p2',
-                name: '15% Vitamin C Glow Concentrate',
-                category: 'brightening',
-                price: 69000,
-                rating: 4.8,
-                image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=600&q=80',
-                hasVideo: true,
-                tag: 'Treatment Step',
-                description: 'Potent 15% pure L-Ascorbic Acid stabilized with Ferulic Acid to visibly fade discoloration and defend skin against urban environmental oxidative stress.',
-                ingredients: 'L-Ascorbic Acid 15%, Ferulic Acid 0.5%, Vitamin E, Hyaluronic Acid.',
-                usage: 'Apply 3-4 drops in the morning on cleansed skin prior to moisturizer and sunscreen.',
-                usageSteps: ["Cleanse and pat skin dry.", "Place 3-4 drops on your fingertips.", "Press, do not rub, over the face and neck, avoiding the eye area.", "Wait a minute, then apply moisturizer.", "Finish with sunscreen every morning."], usageWhen: 'Morning', usageTips: 'Vitamin C works best with SPF in the daytime. Store it somewhere cool and dark, and stop using it if it turns dark orange or brown.', usageWarn: 'A slight tingle is normal when you start. If it burns or stays red, use it every other day or stop. Patch test first.'
-            },
-            {
-                id: 'p3',
-                name: 'Gentle Melt Cleansing Balm',
-                category: 'sensitive',
-                price: 48000,
-                rating: 4.7,
-                image: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=600&q=80',
-                hasVideo: true,
-                tag: 'Cleansing Step',
-                description: 'Nourishing oil balm cleanser that effortlessly dissolves long-wear sunscreen and waterproof makeup while supporting natural skin lipid barriers.',
-                ingredients: 'Sunflower Seed Oil, Oat Kernel Extract, Squalane, Vitamin E.',
-                usage: 'Massage onto dry skin to melt makeup, emulsify with warm water, and rinse thoroughly.',
-                usageSteps: ["Start with dry hands and a dry face.", "Warm a small amount between your palms.", "Massage over your face for 60 seconds to melt sunscreen and makeup.", "Wet your hands and keep massaging until the balm turns milky.", "Rinse thoroughly with lukewarm water and pat dry."], usageWhen: 'Evening', usageTips: 'Use it on dry skin first. Water at the start stops the oils from lifting makeup.', usageWarn: 'Close your eyes while massaging near the eye area. Rinse with water if it gets in.'
-            },
-            {
-                id: 'p4',
-                name: 'Calming BHA Clarifying Solution',
-                category: 'oily',
-                price: 51000,
-                rating: 4.6,
-                image: 'https://images.unsplash.com/photo-1512290900673-70023421523b?auto=format&fit=crop&w=600&q=80',
-                hasVideo: false,
-                tag: 'Exfoliating Step',
-                description: '2% Salicylic Acid liquid exfoliant that gently unclogs congested pores, smooths rough texture, and minimizes surface sebum shine.',
-                ingredients: 'Salicylic Acid 2%, Green Tea Extract, Allantoin, Niacinamide.',
-                usage: 'Saturate a cotton pad and sweep across face 2-3 times per week at night.',
-                usageSteps: ["Cleanse and pat skin completely dry.", "Saturate a cotton pad with the solution.", "Sweep across the face, focusing on the nose, chin and forehead. Avoid the eyes and lips.", "Leave on, do not rinse.", "Follow with moisturizer."], usageWhen: 'Night, 2 to 3 times a week', usageTips: 'Start with 2 nights a week and build up only if your skin stays comfortable.', usageWarn: 'Wear sunscreen the next morning. Do not use with other strong exfoliants on the same night.'
-            }
-        ];
+        const PRODUCTS = [];   // filled from the shop (Admin > Products) as soon as the page loads; nothing is built into the page
 
         // GLOBAL APPLICATION STATE
         let cart = [];
@@ -1213,13 +1109,13 @@
             const container = document.getElementById('home-featured-products');
             if (!container) return;
             container.innerHTML = '';
-            PRODUCTS.slice(0, 4).forEach(product => {
+            PRODUCTS.forEach(product => {   // every product posted in the shop appears here, always
                 const card = document.createElement('div');
                 card.className = 'bg-white border border-brand-stone/60 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer';
                 card.onclick = () => openPdp(product.id);
                 card.innerHTML = `
                     <div class="h-48 rounded-xl overflow-hidden mb-4 bg-brand-ivory">
-                        <img src="${product.image}" alt="${product.name}" class="w-full h-full object-cover">
+                        <img src="${product.image}" alt="${product.name}" loading="lazy" class="w-full h-full object-cover">
                     </div>
                     <span class="text-[10px] font-bold text-brand-blue uppercase">${product.tag}</span>
                     <h4 class="font-serif text-base font-bold text-brand-navy mt-0.5">${product.name}</h4>
@@ -1479,7 +1375,7 @@
             quizAnswers.texture = textureVal;
             document.getElementById('quiz-step-3').classList.add('hidden');
 
-            const matchedProduct = PRODUCTS[0]; // Recommend Barrier Gel Moisturizer
+            const matchedProduct = PRODUCTS[0] || { id: '', name: 'Browse our shop', image: '', price: 0 };
             const card = document.getElementById('quiz-recommended-card');
             card.innerHTML = `
                 <img src="${matchedProduct.image}" class="w-24 h-24 object-cover rounded-xl bg-brand-ivory" alt="${matchedProduct.name}">
@@ -1605,7 +1501,7 @@
             if (!g('pf-name') || isNaN(price) || price < 0) { showToast('Enter a product name and a valid price'); return; }
             const old = PRODUCTS.find(x => x.id === editingId) || {};
             const p = {id: editingId || 'p' + Date.now(), name: g('pf-name'), price, category: g('pf-cat'), tag: g('pf-tag') || 'Skincare Step', rating: old.rating || 4.5,
-                image: g('pf-image') || PRODUCTS[0].image, description: g('pf-desc') || 'No description yet.', ingredients: old.ingredients || 'Ingredients to be added.', usage: old.usage || 'Usage to be added.', hasVideo: document.getElementById('pf-video').checked};
+                image: g('pf-image') || ((PRODUCTS[0] || {}).image || ''), description: g('pf-desc') || 'No description yet.', ingredients: old.ingredients || 'Ingredients to be added.', usage: old.usage || 'Usage to be added.', hasVideo: document.getElementById('pf-video').checked};
             if (editingId) PRODUCTS.splice(PRODUCTS.indexOf(old), 1, p); else PRODUCTS.push(p);
             persist(); clearProductForm(); renderCatalog(PRODUCTS); renderHomeFeatured(); renderAdmin(); showToast('Product saved');
         }
@@ -1638,8 +1534,8 @@ try { const d = JSON.parse(localStorage.getItem(XK) || 'null'); if (d) { Object.
 if (!X.seeded) {
   X.seeded = true;
   X.posts = [
-    {id: 'b1', title: 'How to Build a Simple Morning Routine', cat: 'Routines', date: Date.now() - 4 * DAY, pub: true, cover: PRODUCTS[0].image, excerpt: 'Three steps are enough: cleanse, treat, protect. Here is how to layer them.', body: '## Start gentle\nCleanse with lukewarm water and a mild cleanser. Over-washing strips the barrier.\n\n## Treat\nApply a vitamin C serum on clean skin to support brightness through the day.\n\n## Protect\nFinish with moisturizer and an SPF every single morning, even on cloudy days.'},
-    {id: 'b2', title: 'Hyaluronic Acid: What It Really Does', cat: 'Ingredients', date: Date.now() - 9 * DAY, pub: true, cover: PRODUCTS[2].image, excerpt: 'It does not add water by itself. It holds it. Learn how to use it properly.', body: 'Hyaluronic acid is a humectant, which means it draws and holds water close to the skin.\n\n## Use it on damp skin\nApply right after cleansing while skin is still slightly wet, then seal with a moisturizer.\n\n## Who is it for?\nAlmost everyone, including oily and sensitive skin types.'}
+    {id: 'b1', title: 'How to Build a Simple Morning Routine', cat: 'Routines', date: Date.now() - 4 * DAY, pub: true, cover: ((PRODUCTS[0] || {}).image || ''), excerpt: 'Three steps are enough: cleanse, treat, protect. Here is how to layer them.', body: '## Start gentle\nCleanse with lukewarm water and a mild cleanser. Over-washing strips the barrier.\n\n## Treat\nApply a vitamin C serum on clean skin to support brightness through the day.\n\n## Protect\nFinish with moisturizer and an SPF every single morning, even on cloudy days.'},
+    {id: 'b2', title: 'Hyaluronic Acid: What It Really Does', cat: 'Ingredients', date: Date.now() - 9 * DAY, pub: true, cover: ((PRODUCTS[2] || {}).image || ''), excerpt: 'It does not add water by itself. It holds it. Learn how to use it properly.', body: 'Hyaluronic acid is a humectant, which means it draws and holds water close to the skin.\n\n## Use it on damp skin\nApply right after cleansing while skin is still slightly wet, then seal with a moisturizer.\n\n## Who is it for?\nAlmost everyone, including oily and sensitive skin types.'}
   ];
 }
 let xsave = () => { try { localStorage.setItem(XK, JSON.stringify(X)); } catch (e) { showToast('Storage full: use smaller images or image URLs'); } };
@@ -1784,7 +1680,7 @@ function clearPost() { bEdit = null; $('bf-head').innerText = 'New article'; ['b
 function editPost(id) { const p = X.posts.find(x => x.id === id); bEdit = id; $('bf-head').innerText = 'Edit article'; $('bf-title').value = p.title; $('bf-cat').value = p.cat || ''; $('bf-cover').value = p.cover; $('bf-ex').value = p.excerpt; $('bf-body').value = p.body; $('bf-pub').checked = p.pub; adminTab('blog'); window.scrollTo({top: 0, behavior: 'smooth'}); }
 function savePost() {
   const g = i => $(i).value.trim(); if (!g('bf-title') || !g('bf-body')) { showToast('Add a title and article text'); return; }
-  const old = X.posts.find(x => x.id === bEdit), p = {id: bEdit || 'b' + Date.now(), title: g('bf-title'), cat: g('bf-cat'), cover: g('bf-cover') || PRODUCTS[0].image, excerpt: g('bf-ex') || g('bf-body').slice(0, 120) + '...', body: g('bf-body'), pub: $('bf-pub').checked, date: old ? old.date : Date.now()};
+  const old = X.posts.find(x => x.id === bEdit), p = {id: bEdit || 'b' + Date.now(), title: g('bf-title'), cat: g('bf-cat'), cover: g('bf-cover') || ((PRODUCTS[0] || {}).image || ''), excerpt: g('bf-ex') || g('bf-body').slice(0, 120) + '...', body: g('bf-body'), pub: $('bf-pub').checked, date: old ? old.date : Date.now()};
   if (old) X.posts.splice(X.posts.indexOf(old), 1, p); else X.posts.push(p);
   xsave(); clearPost(); renderBlog(); renderBlogAdm(); showToast('Article saved');
 }
@@ -3104,7 +3000,7 @@ const zoneOf = st => st === 'Lagos' ? 'lagos' : st === INTL ? 'intl' : NG_STATES
   'use strict';
   /* ===== SKINSENTIALS22 SEO LAYER: per-page titles, meta, canonical, structured data, image alt text ===== */
   const SITE = 'https://skinsentials22.com.ng', BRAND = 'Skinsentials22';
-  const ROUTES = {home: '/', catalog: '/shop', 'video-hub': '/videos', quiz: '/skin-quiz', consult: '/skin-consultation', ingredients: '/ingredients', giftcard: '/gift-cards', brands: '/brands', blog: '/journal'};
+  const ROUTES = {home: '/', catalog: '/shop', 'video-hub': '/videos', quiz: '/skin-quiz', consult: '/skin-consultation', ingredients: '/ingredients', giftcard: '/gift-cards', brands: '/brands', blog: '/journal', glow: '/glow-rewards'};
   const META = {
     home: ['Skinsentials22 | Skincare & Beauty Products in Nigeria — Serums, Moisturisers, K-Beauty', 'Shop authentic skincare in Nigeria: vitamin C serums, ceramide moisturisers, cleansers, K-beauty and more. Video guides, fast delivery and secure Paystack checkout.'],
     catalog: ['Shop Skincare in Nigeria — Serums, Moisturisers & Cleansers | Skinsentials22', 'Browse all skincare essentials for dry, oily, acne-prone and sensitive skin. Authentic products, clear prices in naira, delivery across Nigeria.'],
@@ -3114,6 +3010,7 @@ const zoneOf = st => st === 'Lagos' ? 'lagos' : st === INTL ? 'intl' : NG_STATES
     ingredients: ['Shop Skincare by Ingredient — Vitamin C, Niacinamide, Ceramides | Skinsentials22', 'Find products by the ingredient your skin needs. Understand what each active does and how to use it.'],
     giftcard: ['Skincare Gift Cards — Send a Gift in Nigeria | Skinsentials22', 'Give the gift of great skin. Send a Skinsentials22 gift card with a personal message.'],
     brands: ['Skincare Brands We Stock | Skinsentials22', 'Explore the skincare and beauty brands available at Skinsentials22, delivered across Nigeria.'],
+    glow: ['Glow Rewards — Earn Points & Skincare Rewards | Skinsentials22', 'Earn Glow Points on every order, unlock skincare rewards and give a friend money off their first order.'],
     blog: ['Skincare Journal — Routines, Ingredients & Tips | Skinsentials22', 'Practical skincare advice, routines and ingredient guides from the Skinsentials22 team.']
   };
   const NOINDEX = ['admin', 'app'];
@@ -4428,5 +4325,285 @@ if (document.readyState === 'complete') wire(); else window.addEventListener('lo
 })();
 
 </script>
+<script id="glow-layer-js">
+/* SKINSENTIALS22 Glow Rewards (browser): rewards page, account tab, Glow Friend code at checkout, admin screen.
+   Everything shown comes from the server. Delete this whole script block to remove the interface. */
+(function () {
+'use strict';
+const BASE = window.SK_API_BASE || '', TK = 'sk22tok', AT = 'sk22adm', GK = 'sk22glow';
+const $ = id => document.getElementById(id), E = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const N = n => '\u20A6' + Number(n || 0).toLocaleString('en-NG'), P = n => Number(n || 0).toLocaleString('en-NG');
+const toast = m => { try { showToast(m); } catch (e) { alert(m); } };
+const tok = () => { try { return localStorage.getItem(TK) || ''; } catch (e) { return ''; } };
+const realFetch = window.fetch.bind(window);
+async function api(path, o) {
+  o = o || {}; const h = {}; if (o.body) h['Content-Type'] = 'application/json';
+  const t = o.admin ? sessionStorage.getItem(AT) : tok(); if (t) h.Authorization = 'Bearer ' + t;
+  let r; try { r = await realFetch(BASE + '/api' + path, { method: o.method || 'GET', headers: h, body: o.body ? JSON.stringify(o.body) : undefined }); } catch (e) { throw new Error('Cannot reach the server. Check your connection.'); }
+  const j = await r.json().catch(() => ({})); if (!r.ok) { const e = new Error(j.error || 'Something went wrong'); e.status = r.status; throw e; } return j;
+}
+const card = 'bg-white border border-brand-stone rounded-xl', btn = 'bg-brand-navy hover:bg-brand-blue text-white text-xs font-semibold px-5 py-2.5 rounded-full disabled:opacity-40 disabled:cursor-not-allowed', btn2 = 'border border-brand-stone text-xs font-semibold px-4 py-2 rounded-full hover:bg-brand-mist';
+const d8 = t => t ? new Date(t).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+let PUB = { active: false }, CO = { want: '', code: '', q: null, timer: 0 };
+
+/* ---------- Glow Friend link: ?glow=GLOW-NAME1000 is remembered on this device for 30 days ---------- */
+const stored = () => { try { const r = JSON.parse(localStorage.getItem(GK) || 'null'); return r && r.exp > Date.now() ? r : null; } catch (e) { return null; } };
+function capture() {
+  const u = new URL(location.href), c = (u.searchParams.get('glow') || '').toUpperCase().replace(/\s/g, ''); if (!c) return false;
+  u.searchParams.delete('glow'); history.replaceState(null, '', u.pathname + (u.search || '') + u.hash);
+  if (/^GLOW-[A-Z0-9-]{3,30}$/.test(c)) { try { localStorage.setItem(GK, JSON.stringify({ code: c, exp: Date.now() + 30 * 864e5 })); } catch (e) {} return true; }
+  return false;
+}
+
+/* ---------- member dashboard (used on the page and in the account dialog) ---------- */
+const KIND = { earn: 'Order points', bonus: 'Glow Friend bonus', redeem: 'Reward requested', refund: 'Points returned', reverse: 'Points removed', restore: 'Points restored', adjust: 'Adjustment' };
+const CST = { requested: ['Waiting for us', 'bg-amber-50 text-amber-800'], approved: ['Approved', 'bg-blue-50 text-blue-800'], fulfilled: ['Delivered to you', 'bg-green-50 text-green-800'], rejected: ['Declined, points returned', 'bg-gray-100 text-gray-700'] };
+function dash(m) {
+  const pct = m.next ? Math.min(100, Math.round(m.balance / m.next.pts * 100)) : 100;
+  const rewards = m.tiers.map(t => { const ok = m.balance >= t.pts; return `<li class="${card} p-3 flex items-start justify-between gap-3"><div class="text-xs"><b class="text-brand-navy">${E(t.name)}</b> <span class="text-brand-slate">\u00B7 ${P(t.pts)} points</span><p class="text-brand-slate mt-1">${E(t.reward)}</p></div><button type="button" class="${btn} shrink-0" data-claim="${E(t.id)}" ${ok ? '' : 'disabled'} aria-label="Claim ${E(t.name)}">${ok ? 'Claim' : P(t.pts - m.balance) + ' to go'}</button></li>`; }).join('');
+  const claims = m.claims.map(c => { const s = CST[c.status] || [c.status, 'bg-gray-100']; return `<li class="${card} p-3 text-xs flex justify-between gap-2"><span><b class="text-brand-navy">${E(c.tier_name)}</b> #${c.id}<br><span class="text-brand-slate">${d8(c.created)}${c.note ? ' \u00B7 ' + E(c.note) : ''}</span></span><span class="self-start px-2 py-0.5 rounded-full ${s[1]}">${E(s[0])}</span></li>`; }).join('');
+  const hist = m.hist.map(h => `<li class="flex justify-between gap-2 border-b border-brand-stone py-2 text-xs"><span><b class="text-brand-navy">${E(KIND[h.kind] || h.kind)}</b><br><span class="text-brand-slate">${d8(h.created)}${h.note ? ' \u00B7 ' + E(h.note) : ''}</span></span><b class="${h.points > 0 ? 'text-green-700' : 'text-red-600'}">${h.points > 0 ? '+' : ''}${P(h.points)}</b></li>`).join('');
+  return `<div class="${card} p-5 mb-5 bg-brand-mist">
+    <p class="text-[11px] font-bold uppercase tracking-widest text-brand-slate">Your Glow Points${m.tier ? ' \u00B7 ' + E(m.tier.name) : ''}</p>
+    <p class="font-serif text-4xl font-bold text-brand-navy mt-1" aria-live="polite">${P(m.balance)}</p>
+    <div class="h-2 rounded-full bg-white mt-3 overflow-hidden" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="Progress to next reward"><div class="h-2 rounded-full bg-brand-blue" style="width:${pct}%"></div></div>
+    <p class="text-xs text-brand-slate mt-2">${m.next ? `${P(m.need)} more points to reach <b class="text-brand-navy">${E(m.next.name)}</b>.` : 'You have reached our top reward. Thank you for glowing with us.'}</p>
+    ${m.pending ? `<p class="text-xs text-brand-slate mt-1">${P(m.pending)} more points are on the way. They are added once your order is delivered.</p>` : ''}
+    ${m.soon ? `<p class="text-xs text-amber-700 mt-1">${P(m.soon.pts)} points expire on ${d8(m.soon.at)}.</p>` : ''}</div>
+  <p data-gmsg role="status" class="text-xs text-brand-navy mb-3 empty:hidden"></p>
+  <h3 class="font-semibold text-sm text-brand-navy mb-2">Rewards</h3><ul class="space-y-2 mb-5">${rewards}</ul>
+  ${m.code ? `<div class="${card} p-4 mb-5"><h3 class="font-semibold text-sm text-brand-navy">Glow Friend: share your code</h3><p class="text-xs text-brand-slate mt-1">Your friend gets <b>${N(m.friend_off)} off</b> their first order. You get <b>${P(m.friend_bonus)} bonus points</b> once their order is delivered.</p>
+    <div class="flex gap-2 mt-3"><input readonly value="${E(m.code)}" aria-label="Your Glow Friend code" class="adm-in font-mono font-semibold" data-gcode><button type="button" class="${btn2}" data-gcopy>Copy</button></div>
+    <div class="flex gap-2 mt-2"><button type="button" class="${btn2}" data-gshare>Share link</button></div>
+    <p class="text-[11px] text-brand-slate mt-2">${m.friends.done} friend order${m.friends.done === 1 ? '' : 's'} completed${m.friends.waiting ? ` \u00B7 ${m.friends.waiting} waiting for delivery` : ''}.</p></div>` : ''}
+  ${claims ? `<h3 class="font-semibold text-sm text-brand-navy mb-2">Your reward requests</h3><ul class="space-y-2 mb-5">${claims}</ul>` : ''}
+  <details class="${card} p-4 mb-5"><summary class="font-semibold text-sm text-brand-navy cursor-pointer">Ordered before without an account?</summary><p class="text-xs text-brand-slate mt-2">Add an earlier order to your account so it earns Glow Points. You need the order reference from your confirmation (it starts with SK22-) and the email or phone you used.</p>
+    <div class="grid sm:grid-cols-2 gap-2 mt-3"><input class="adm-in" data-lref placeholder="Order reference, e.g. SK22-1A2B3C4D5E" aria-label="Order reference" maxlength="40" autocomplete="off"><input class="adm-in" data-lcon placeholder="Email or phone used on the order" aria-label="Email or phone used on the order" maxlength="254"></div>
+    <button type="button" class="${btn} mt-3" data-llink>Add this order</button><p data-lmsg role="status" class="text-xs mt-2 empty:hidden"></p></details>
+  <h3 class="font-semibold text-sm text-brand-navy mb-1">Points history</h3><ul class="mb-3">${hist || '<li class="text-xs text-brand-slate py-2">No points yet. Your first order will start your balance.</li>'}</ul>`;
+}
+function wire(root, m, reload) {
+  const msg = t => { const x = root.querySelector('[data-gmsg]'); if (x) x.textContent = t; };
+  root.querySelectorAll('[data-claim]').forEach(b => b.onclick = async () => {
+    const t = m.tiers.find(x => x.id === b.dataset.claim); if (!t || !confirm(`Claim ${t.name}? ${P(t.pts)} points will be used.`)) return;
+    b.disabled = true; try { const r = await api('/glow/claim', { method: 'POST', body: { tier: t.id } }); await reload(); const x = root.querySelector('[data-gmsg]'); if (x) x.innerHTML = `Reward requested (claim #${r.id}). We will confirm it with you.${r.whatsapp ? ` <a class="underline text-brand-blue font-semibold" target="_blank" rel="noopener" href="${E(r.whatsapp)}">Message us on WhatsApp</a>` : ''}`; } catch (e) { b.disabled = false; msg(e.message); }
+  });
+  const lb = root.querySelector('[data-llink]'); if (lb) lb.onclick = async () => { const o = root.querySelector('[data-lmsg]'); lb.disabled = true; o.className = 'text-xs mt-2 text-brand-slate'; o.textContent = 'Checking\u2026'; try { const r = await api('/glow/link-order', { method: 'POST', body: { ref: root.querySelector('[data-lref]').value, contact: root.querySelector('[data-lcon]').value } }); await reload(); const x = root.querySelector('[data-lmsg]'); if (x) { x.className = 'text-xs mt-2 text-green-700'; x.textContent = r.message; const d = x.closest('details'); if (d) d.open = true; } } catch (e) { lb.disabled = false; o.className = 'text-xs mt-2 text-red-600'; o.textContent = e.message; } };
+  const c = root.querySelector('[data-gcopy]'); if (c) c.onclick = async () => { try { await navigator.clipboard.writeText(m.code); msg('Code copied.'); } catch (e) { root.querySelector('[data-gcode]').select(); msg('Press Ctrl+C or long-press to copy.'); } };
+  const s = root.querySelector('[data-gshare]'); if (s) s.onclick = async () => { const t = `Get ${N(m.friend_off)} off your first Skinsentials22 order with my code ${m.code}`; if (navigator.share) navigator.share({ title: 'Skinsentials22', text: t, url: m.link }).catch(() => {}); else { try { await navigator.clipboard.writeText(t + ' ' + m.link); msg('Share message copied.'); } catch (e) { msg(m.link); } } };
+}
+
+/* ---------- Glow Rewards page ---------- */
+function ensurePage() {
+  if ($('page-glow')) return; const after = $('page-referral') || $('page-brands') || $('page-blog');
+  (after || document.querySelector('main') || document.body).insertAdjacentHTML(after ? 'afterend' : 'beforeend', '<section id="page-glow" class="page-section" aria-labelledby="glow-h1"><div id="glow-root" class="max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-16"></div></section>');
+}
+const termsOf = c => c.terms || `Glow Rewards apply to eligible purchases and are subject to product availability and order verification. Points are credited after an order is paid and delivered, are personal to your account, cannot be exchanged for cash, and expire ${c.expiry_months} months after they are earned. Points, vouchers, gifts and free delivery are not redeemable for cash and cannot be combined with other rewards unless Skinsentials22 says so. The Glow Friend offer is for a friend's first order only, cannot be used on your own orders, and the bonus points are added once the friend's order is delivered. Orders that are cancelled, refunded or not paid do not earn points, and points already given for them are removed. Skinsentials22 may update the programme and will tell customers about material changes.`;
+async function renderPage() {
+  ensurePage(); const root = $('glow-root'); root.innerHTML = '<p role="status" class="text-center text-sm text-brand-slate py-16"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Loading\u2026</p>';
+  let c; try { c = await api('/glow/public'); PUB = c; } catch (e) { root.innerHTML = `<p role="alert" class="text-center text-sm text-red-600 py-16">${E(e.message)} <button class="underline" onclick="location.reload()">Try again</button></p>`; return; }
+  if (!c.active) { root.innerHTML = '<div class="text-center py-16"><h1 id="glow-h1" class="font-serif text-3xl font-bold text-brand-navy mb-3">Glow Rewards</h1><p class="text-sm text-brand-slate">Glow Rewards are not running right now. Please check back soon.</p></div>'; return; }
+  setTimeout(() => { const h = $('glow-h1'); if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); } }, 60);
+  const earn = c.mode === 'spend' ? `<p class="text-sm text-brand-slate mb-3">Every <b>${N(c.per_naira)}</b> you spend on products earns <b>1 Glow Point</b>.</p>` : `<div class="${card} overflow-hidden mb-3"><table class="w-full text-sm"><caption class="sr-only">Points per eligible purchase</caption><thead><tr class="bg-brand-mist text-left text-[11px] uppercase tracking-wider text-brand-slate"><th scope="col" class="p-3">Product category</th><th scope="col" class="p-3 text-right">Points per eligible purchase</th></tr></thead><tbody>${c.cats.map(x => `<tr class="border-t border-brand-stone"><td class="p-3 text-brand-navy">${E(x.label)}</td><td class="p-3 text-right font-semibold">${P(x.pts)}</td></tr>`).join('')}</tbody></table></div>`;
+  const tiers = `<div class="grid sm:grid-cols-3 gap-3 mb-4">${c.tiers.map(t => `<div class="${card} p-4"><p class="text-[11px] font-bold uppercase tracking-widest text-brand-blue">${P(t.pts)} points</p><p class="font-serif text-xl font-bold text-brand-navy mt-1">${E(t.name)}</p><p class="text-xs text-brand-slate mt-2">${E(t.reward)}</p></div>`).join('')}</div>`;
+  root.innerHTML = `<p class="text-xs font-bold uppercase tracking-widest text-brand-blue mb-2">Skinsentials22</p>
+  <h1 id="glow-h1" class="font-serif text-3xl sm:text-4xl font-bold text-brand-navy mb-3">Glow Rewards</h1>
+  <p class="text-sm text-brand-slate mb-8">A simple way to thank you for choosing Skinsentials22. Earn Glow Points when you shop, unlock skincare rewards, and invite friends to discover their glow.</p>
+  <div id="glow-me" class="mb-8"></div>
+  <h2 class="font-serif text-2xl font-bold text-brand-navy mb-1">Two ways to glow</h2>
+  <h3 class="font-semibold text-brand-navy mt-4 mb-1">1. Glow Points</h3><p class="text-sm text-brand-slate mb-3">Earn points when you shop eligible products. Build your balance over time and redeem it for skincare gifts and other rewards.</p>${earn}
+  <h3 class="font-semibold text-brand-navy mt-6 mb-2">Glow Rewards</h3>${tiers}
+  <h3 class="font-semibold text-brand-navy mt-6 mb-1">How points are earned</h3>
+  <p class="text-sm text-brand-slate mb-6">${c.mode === 'spend' ? `Points follow what you spend: about every ${N(c.per_naira)} earns 1 point.` : `The points above are the standard points for eligible items. For anything not listed, about every ${N(c.per_naira)} spent earns 1 point.`} Points are credited after an order is paid and delivered. They are personal to your account, cannot be exchanged for cash, and expire ${c.expiry_months} months after they are earned.</p>
+  <h3 class="font-semibold text-brand-navy mt-6 mb-1">2. Glow Friend referrals</h3>
+  <p class="text-sm text-brand-slate mb-2">Share your personal code with a friend. When they use it on their first order:</p>
+  <ul class="text-sm text-brand-slate list-disc pl-5 space-y-1 mb-3"><li>Your friend receives <b>${N(c.friend_off)} off</b> their first eligible purchase.</li><li>You receive <b>${P(c.friend_bonus)} bonus Glow Points</b> after their order is delivered.</li></ul>
+  <p class="text-sm text-brand-slate mb-8">Your code looks like <b>GLOW-${'[FIRST NAME]'}${c.friend_off}</b> and is ready in your account as soon as you sign in.</p>
+  <h2 class="font-serif text-2xl font-bold text-brand-navy mb-3">Your Glow Rewards journey</h2>
+  <ol class="space-y-3 text-sm text-brand-slate mb-8 list-decimal pl-5"><li><b class="text-brand-navy">Shop.</b> Earn Glow Points on eligible Skinsentials22 products. Sign in when you order so the points reach your account.</li><li><b class="text-brand-navy">Track.</b> See your balance and progress toward your next reward in your account.</li><li><b class="text-brand-navy">Share.</b> Invite a friend with your personal Glow Friend code.</li><li><b class="text-brand-navy">Redeem.</b> When you reach a reward milestone, tap Claim. We confirm it with you on WhatsApp and apply it to an eligible order.</li></ol>
+  <p class="text-sm text-brand-slate mb-8">For example, a sunscreen purchase may earn ${P((c.cats.find(x => /sun/i.test(x.label)) || { pts: 20 }).pts)} points. Once your balance reaches ${P((c.tiers[0] || { pts: 100 }).pts)}, you can claim your ${E((c.tiers[0] || { name: 'first' }).name)} reward.</p>
+  <details class="${card} p-4 mb-4 text-sm"><summary class="font-semibold text-brand-navy cursor-pointer">Programme terms</summary><div class="mt-3 text-brand-slate whitespace-pre-line">${E(termsOf(c))}</div></details>`;
+  loadMe();
+}
+async function loadMe() {
+  const box = $('glow-me'); if (!box) return;
+  if (!tok()) { box.innerHTML = `<div class="${card} p-5 bg-brand-mist"><p class="font-semibold text-brand-navy">Start earning Glow Points</p><p class="text-xs text-brand-slate mt-1">Create a free account or sign in, then sign in when you order so your points are added automatically.</p><button type="button" class="${btn} mt-3" onclick="openAccount()">Sign in or create an account</button></div>`; return; }
+  box.innerHTML = '<p role="status" class="text-xs text-brand-slate"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Loading your points\u2026</p>';
+  try { const m = await api('/glow/me'); box.innerHTML = dash(m); wire(box, m, loadMe); }
+  catch (e) { box.innerHTML = e.status === 401 ? `<button type="button" class="${btn}" onclick="openAccount()">Sign in to see your points</button>` : `<p role="alert" class="text-xs text-red-600">${E(e.message)}</p>`; }
+}
+
+/* ---------- account dialog tab ---------- */
+async function renderAcct() {
+  const pane = $('ac-pane'); if (!pane) return; pane.innerHTML = '<p role="status" class="text-xs text-brand-slate"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Loading\u2026</p>';
+  try { const m = await api('/glow/me'); if (!m.active) { pane.innerHTML = '<p class="text-xs text-brand-slate">Glow Rewards are not running right now.</p>'; return; } pane.innerHTML = dash(m) + `<p class="text-[11px] text-brand-slate"><a href="#glow" class="text-brand-blue underline" onclick="closeAccount();navigateTo('glow')">How Glow Rewards work</a></p>`; wire(pane, m, renderAcct); }
+  catch (e) { pane.innerHTML = `<p role="alert" class="text-xs text-red-600">${E(e.message)}</p>`; }
+}
+let STRIP = { at: 0, html: '' };
+async function strip(bar) {
+  if (!PUB.active || bar.parentElement.querySelector('[data-glow-strip]')) return;
+  bar.insertAdjacentHTML('beforebegin', '<button type="button" data-glow-strip class="w-full text-left mb-3 rounded-xl bg-brand-mist border border-brand-stone px-3 py-2 text-xs text-brand-navy empty:hidden" aria-label="Open Glow Points"></button>');
+  const el = bar.parentElement.querySelector('[data-glow-strip]'); el.onclick = () => { const b = document.querySelector('[data-glow-tab]'); if (b) b.click(); };
+  if (STRIP.html && Date.now() - STRIP.at < 15000) { el.innerHTML = STRIP.html; return; }
+  try { const m = await api('/glow/me'); STRIP = { at: Date.now(), html: `<i class="fa-solid fa-gem mr-1" aria-hidden="true"></i><b>${P(m.balance)} Glow Points</b>${m.next ? ` \u00B7 ${P(m.need)} to ${E(m.next.name)}` : ''}${m.pending ? ` \u00B7 ${P(m.pending)} on the way` : ''}` }; if (el.isConnected) el.innerHTML = STRIP.html; } catch (e) {}
+}
+function tabBtn() {
+  const bar0 = document.querySelector('#acct-body .overflow-x-auto'); if (bar0) strip(bar0);
+  const bar = document.querySelector('#acct-body .overflow-x-auto'); if (!bar || bar.querySelector('[data-glow-tab]')) return;
+  bar.insertAdjacentHTML('beforeend', '<button type="button" data-glow-tab="1" class="flex-1 whitespace-nowrap px-2 py-2 text-xs font-semibold border-b-2 border-transparent text-brand-slate hover:text-brand-navy">Glow Points</button>');
+  bar.querySelector('[data-glow-tab]').onclick = () => { bar.querySelectorAll('button').forEach(b => { const on = b.hasAttribute('data-glow-tab'); b.classList.toggle('border-brand-blue', on); b.classList.toggle('text-brand-blue', on); b.classList.toggle('border-transparent', !on); b.classList.toggle('text-brand-slate', !on); }); renderAcct(); };
+}
+
+/* ---------- checkout: Glow Friend code + points you will earn ---------- */
+function coInit() {
+  const m = $('co-methods'); if (!m || $('glow-co')) return;
+  m.insertAdjacentHTML('beforebegin', `<div id="glow-co" class="border border-brand-stone rounded-xl p-3 space-y-2"><label for="glow-in" class="block text-[11px] font-semibold uppercase tracking-wider text-brand-slate">Glow Friend code (optional)</label><div class="flex gap-2"><input id="glow-in" class="adm-in" autocomplete="off" autocapitalize="characters" maxlength="40" placeholder="GLOW-NAME1000" aria-describedby="glow-err"><button type="button" id="glow-apply" class="${btn2}">Apply</button></div><p id="glow-err" role="alert" class="text-[11px] text-red-600 min-h-[1rem]"></p><div id="glow-sum" class="text-xs space-y-1 empty:hidden"></div><p id="glow-earn" class="text-[11px] text-brand-slate empty:hidden"></p></div>`);
+  $('glow-apply').onclick = () => { CO.want = $('glow-in').value.trim().toUpperCase().replace(/\s/g, ''); quote(true); };
+  $('glow-in').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); $('glow-apply').click(); } };
+  ['co-state', 'co-email', 'co-phone', 'co-methods'].forEach(id => { const x = $(id); if (x) x.addEventListener(id === 'co-methods' ? 'click' : 'change', () => quote()); });
+}
+function coOpen() {
+  if (!PUB.active) return; coInit(); const s = stored(); CO.code = ''; if ($('glow-in')) $('glow-in').value = CO.want = s ? s.code : ''; quote();
+}
+function quote(explicit) {
+  clearTimeout(CO.timer); CO.timer = setTimeout(async () => {
+    const sum = $('glow-sum'); if (!sum || typeof cart === 'undefined' || !cart.length) return;
+    const meth = document.querySelector('#co-methods input:checked'), lab = meth && meth.closest('label');
+    try {
+      const q = await api('/glow/quote', { method: 'POST', body: { code: CO.want, state: ($('co-state') || {}).value || '', email: ($('co-email') || {}).value || '', phone: ($('co-phone') || {}).value || '', items: cart.map(i => i.giftCard ? { id: i.id, qty: i.qty, giftCard: true, price: i.price } : { id: i.id, qty: i.qty }) } });
+      CO.q = q; CO.code = q.discount ? CO.want : ''; $('glow-err').textContent = q.message || '';
+      const r = $('ref-co'); if (r) { r.style.display = CO.code ? 'none' : ''; if (CO.code && $('ref-cb') && $('ref-cb').checked) { $('ref-cb').checked = false; $('ref-cb').dispatchEvent(new Event('change')); } }   // one friend offer per order
+      sum.innerHTML = q.discount ? `<div class="flex justify-between text-green-700"><span>Glow Friend offer</span><span>-${N(q.discount)}</span></div><div class="flex justify-between font-bold text-brand-navy border-t border-brand-stone pt-1"><span>Total to pay</span><span>${q.shippingKnown ? N(q.total) : N(q.total) + ' + delivery'}</span></div>` : '';
+      $('glow-earn').textContent = !q.on ? '' : q.signedIn ? (q.earn ? `You will earn about ${P(q.earn)} Glow Points on this order once it is delivered.` : '') : 'Sign in before you order to earn Glow Points on this purchase.';
+      if (explicit && q.discount) toast('Glow Friend offer applied');
+      const pay = $('co-pay'); if (pay && q.discount && lab && !/direct|cod|dm|transfer/.test(lab.dataset.m || '') && q.shippingKnown) pay.innerHTML = '<i class="fa-solid fa-lock mr-1"></i> Pay ' + N(q.total) + ' securely';
+    } catch (e) { $('glow-err').textContent = e.message; }
+  }, explicit ? 0 : 350);
+}
+window.fetch = function (u, o) {   // the server prices the order: the browser only says which Glow Friend code was applied
+  let post = false; try { post = o && o.method === 'POST' && /\/api\/orders$/.test(String(u)) && o.body; if (post && CO.code) { const b = JSON.parse(o.body); b.glow = CO.code; delete b.referral; o = { ...o, body: JSON.stringify(b) }; } else post = false; } catch (e) { post = false; }
+  const isOrder = !post && o && o.method === 'POST' && /\/api\/orders$/.test(String(u));
+  const p = realFetch(u, o); return (post || isOrder) ? p.then(r => { if (r.ok) { if (post) { try { localStorage.removeItem(GK); } catch (e) {} CO.code = CO.want = ''; } r.clone().json().then(j => { STRIP.at = 0; CO.note = j && j.glowPoints ? j.glowPoints : 0; CO.ref = j && j.ref || ''; }).catch(() => {}); } return r; }) : p;
+};
+
+/* ---------- admin: Admin > Glow Rewards ---------- */
+let AD = null, SUB = 'overview';
+const A = (p, o) => api(p, { ...(o || {}), admin: true });
+const fail = e => { if (e && e.status === 401) { toast('Your admin session ended. Please sign in again.'); return; } toast((e && e.message) || 'Something went wrong.'); };
+const th = 'p-2 text-left text-[11px] uppercase tracking-wider text-brand-slate', td = 'p-2 border-t border-brand-stone align-top';
+function adminInit() {
+  if (!$('tab-orders') || $('tab-glow')) return;
+  const ob = document.querySelector('[data-tab=orders]'); if (!ob) return;
+  ob.insertAdjacentHTML('afterend', '<button data-tab="glow" onclick="adminTab(\'glow\')" class="adm-tab-btn text-left text-sm px-3 py-2 rounded-lg text-gray-300 hover:bg-white/10"><i class="fa-solid fa-gem w-5"></i>Glow Rewards <span id="glow-badge" class="hidden ml-1 bg-red-500 text-white text-[10px] rounded-full px-1.5"></span></button>');
+  $('tab-orders').parentElement.insertAdjacentHTML('beforeend', '<div id="tab-glow" class="admin-tab hidden"><h1 class="font-serif text-3xl font-bold text-brand-navy mb-4">Glow Rewards</h1><div id="glow-body"><p class="text-sm text-brand-slate">Loading\u2026</p></div></div>');
+}
+async function adminLoad() {
+  adminInit(); const b = $('glow-body'); if (!b) return;
+  try { AD = await A('/admin/glow'); } catch (e) { b.innerHTML = `<p class="text-sm text-red-600">${E(e.message)} <button class="underline" id="glow-retry">Try again</button></p>`; if ($('glow-retry')) $('glow-retry').onclick = adminLoad; fail(e); return; }
+  const g = $('glow-badge'); if (g) { g.textContent = AD.stats.open; g.classList.toggle('hidden', !AD.stats.open); }
+  const tabs = [['overview', 'Overview'], ['claims', 'Reward claims' + (AD.stats.open ? ' (' + AD.stats.open + ')' : '')], ['products', 'Product points'], ['members', 'Members'], ['friends', 'Glow Friend orders'], ['settings', 'Settings']];
+  b.innerHTML = `<div class="flex flex-wrap gap-2 mb-4" role="tablist">${tabs.map(t => `<button type="button" role="tab" data-gsub="${t[0]}" aria-selected="${t[0] === SUB}" class="px-4 py-2 rounded-full text-xs font-semibold ${t[0] === SUB ? 'bg-brand-navy text-white' : 'border border-brand-stone text-brand-slate hover:bg-brand-mist'}">${E(t[1])}</button>`).join('')}</div><div id="glow-pane"></div>`;
+  b.querySelectorAll('[data-gsub]').forEach(x => x.onclick = () => { SUB = x.dataset.gsub; adminLoad(); });
+  ({ overview: pOverview, claims: pClaims, products: pProducts, members: pMembers, friends: pFriends, settings: pSettings })[SUB]();
+}
+const kpi = (v, l) => `<div class="${card} p-4"><div class="font-serif text-2xl font-bold text-brand-navy">${E(v)}</div><div class="text-[11px] text-brand-slate">${E(l)}</div></div>`;
+function pOverview() {
+  const s = AD.stats, c = AD.cfg;
+  $('glow-pane').innerHTML = `<p class="text-xs mb-4 ${c.on ? 'text-green-700' : 'text-amber-700'}">${c.on ? 'Glow Rewards are ON. Customers see the page and earn points.' : 'Glow Rewards are OFF. Nothing is shown and no points are earned.'}</p>
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">${kpi(s.members, 'Members with points or a code')}${kpi(P(s.outstanding), 'Points customers hold')}${kpi(s.open, 'Reward claims to action')}${kpi(s.friendOrders, 'Glow Friend orders')}</div>
+  <div class="${card} p-4 text-xs text-brand-slate space-y-2"><p><b class="text-brand-navy">How it works.</b> Points are added automatically when an order from a signed-in customer is <b>paid and marked Delivered</b>. Cancelled or unpaid orders remove them again. Guest orders do not earn points, so use <b>Members &rarr; Adjust points</b> if you want to credit one by hand.</p><p>A customer taps <b>Claim</b> on a reward, their points are held straight away, and you confirm it on WhatsApp. Mark the claim <b>Delivered</b> when you have given the reward, or <b>Decline</b> to return the points.</p></div>`;
+}
+const CS = { requested: 'Waiting', approved: 'Approved', fulfilled: 'Delivered', rejected: 'Declined' };
+function pClaims() {
+  $('glow-pane').innerHTML = `<div class="${card} overflow-x-auto"><table class="w-full text-xs"><thead><tr><th class="${th}">Claim</th><th class="${th}">Customer</th><th class="${th}">Reward</th><th class="${th}">Status</th><th class="${th}">Action</th></tr></thead><tbody>${AD.claims.map(c => `<tr><td class="${td}">#${c.id}<br><span class="text-brand-slate">${d8(c.created)}</span></td><td class="${td}"><b>${E(c.name)}</b><br>${E(c.email)}<br>${E(c.phone || '')}</td><td class="${td}"><b>${E(c.tier_name)}</b> (${P(c.points)} pts)<br><span class="text-brand-slate">${E(c.reward)}</span></td><td class="${td}">${E(CS[c.status] || c.status)}${c.note ? '<br><span class="text-brand-slate">' + E(c.note) + '</span>' : ''}</td><td class="${td}">${['requested', 'approved'].includes(c.status) ? `<div class="flex flex-wrap gap-1">${c.status === 'requested' ? `<button class="${btn2}" data-cl="${c.id}" data-st="approved">Approve</button>` : ''}<button class="${btn2}" data-cl="${c.id}" data-st="fulfilled">Mark delivered</button><button class="${btn2}" data-cl="${c.id}" data-st="rejected">Decline</button></div>` : ''}</td></tr>`).join('') || `<tr><td class="${td}" colspan="5">No reward claims yet.</td></tr>`}</tbody></table></div>`;
+  $('glow-pane').querySelectorAll('[data-cl]').forEach(b => b.onclick = async () => {
+    const st = b.dataset.st, note = st === 'approved' ? '' : prompt(st === 'rejected' ? 'Why is this declined? The customer sees this. Points are returned.' : 'Note (optional), for example the order the reward was added to:', ''); if (note === null) return;
+    try { await A('/admin/glow/claims/' + b.dataset.cl, { method: 'POST', body: { status: st, note } }); toast('Claim updated'); adminLoad(); } catch (e) { fail(e); }
+  });
+}
+
+let PF = { q: '', by: 'none', only: 'all' };
+function pProducts() {
+  const L = AD.products, by = PF.by, gk = p => by === 'dept' ? p.dept : by === 'category' ? p.category : by === 'brand' ? p.brand : by === 'auto' ? p.autoCat : '', gl = p => (gk(p) || 'Not set');
+  const q = PF.q.toLowerCase(); let rows = L.filter(p => (!q || (p.name + ' ' + p.brand + ' ' + p.category + ' ' + p.dept).toLowerCase().includes(q)) && (PF.only === 'all' || (PF.only === 'custom' ? p.override !== null : p.override === null)));
+  const groups = new Map(); rows.forEach(p => { const k = by === 'none' ? '' : gl(p); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p); });
+  const row = p => `<tr><td class="${td}"><input type="checkbox" data-pick="${E(p.id)}" aria-label="Select ${E(p.name)}"></td><td class="${td}"><b>${E(p.name)}</b><br><span class="text-brand-slate">${E([p.dept, p.category, p.brand].filter(Boolean).join(' \u00B7 '))}</span></td><td class="${td}">${N(p.price)}</td><td class="${td}">${P(p.auto)} <span class="text-brand-slate">(${E(p.autoCat)})</span></td><td class="${td}"><input type="number" min="0" step="1" class="adm-in w-24" data-one="${E(p.id)}" value="${p.override === null ? '' : p.override}" placeholder="auto" aria-label="Points for ${E(p.name)}"></td></tr>`;
+  const body = [...groups.entries()].map(([k, ps]) => (by === 'none' ? '' : `<tr class="bg-brand-mist"><td class="${td}"><input type="checkbox" data-grp="${E(k)}" aria-label="Select group ${E(k)}"></td><td class="${td}" colspan="2"><b>${E(k)}</b> <span class="text-brand-slate">(${ps.length} product${ps.length === 1 ? '' : 's'})</span></td><td class="${td}" colspan="2"><div class="flex gap-1"><input type="number" min="0" class="adm-in w-20" data-gpts="${E(k)}" placeholder="points" aria-label="Points for group ${E(k)}"><button type="button" class="${btn2}" data-gset="${E(k)}">Set group</button><button type="button" class="${btn2}" data-gclear="${E(k)}">Auto</button></div></td></tr>`) + ps.map(row).join('')).join('');
+  $('glow-pane').innerHTML = `<div class="${card} p-4 mb-3 text-xs text-brand-slate">Every product earns points by its category by default (the <b>Auto</b> column). Type a number to give a product its <b>own</b> points per unit, or leave it empty to use Auto. Your numbers are saved here in Glow Rewards only; your products are never changed.</div>
+  <div class="${card} p-3 mb-3 grid sm:grid-cols-4 gap-2"><input id="pf-q" class="adm-in" placeholder="Search products" value="${E(PF.q)}" aria-label="Search products"><select id="pf-by" class="adm-in" aria-label="Group products by">${[['none', 'No grouping'], ['dept', 'Group by department'], ['category', 'Group by skin type'], ['brand', 'Group by brand'], ['auto', 'Group by points category']].map(o => `<option value="${o[0]}" ${PF.by === o[0] ? 'selected' : ''}>${o[1]}</option>`).join('')}</select><select id="pf-only" class="adm-in" aria-label="Show">${[['all', 'Show all products'], ['custom', 'Only my own numbers'], ['auto', 'Only automatic']].map(o => `<option value="${o[0]}" ${PF.only === o[0] ? 'selected' : ''}>${o[1]}</option>`).join('')}</select><span class="text-xs text-brand-slate self-center">${rows.length} of ${L.length} shown \u00B7 ${L.filter(p => p.override !== null).length} with their own points</span></div>
+  <div class="${card} p-3 mb-3 flex flex-wrap items-center gap-2"><label class="text-xs flex items-center gap-1"><input type="checkbox" id="pf-all"> Select all shown</label><span id="pf-n" class="text-xs text-brand-slate">0 selected</span><input id="pf-pts" type="number" min="0" class="adm-in w-28" placeholder="points" aria-label="Points to apply"><button type="button" class="${btn}" id="pf-set">Set for selected</button><button type="button" class="${btn2}" id="pf-clear">Back to automatic</button></div>
+  <p id="pf-msg" role="status" class="text-xs text-brand-navy mb-2 empty:hidden"></p>
+  <div class="${card} overflow-x-auto"><table class="w-full text-xs"><thead><tr><th class="${th}"><span class="sr-only">Select</span></th><th class="${th}">Product</th><th class="${th}">Price</th><th class="${th}">Auto points</th><th class="${th}">Your points</th></tr></thead><tbody>${body || `<tr><td class="${td}" colspan="5">No products match.</td></tr>`}</tbody></table></div>`;
+  const root = $('glow-pane'), picked = () => [...root.querySelectorAll('[data-pick]:checked')].map(x => x.dataset.pick), upd = () => { $('pf-n').textContent = picked().length + ' selected'; };
+  const save = async (ids, pts, msg) => { if (!ids.length) { $('pf-msg').textContent = 'Select at least one product first.'; return; } try { await A('/admin/glow/overrides', { method: 'PUT', body: { ids, points: pts } }); toast(msg); await adminLoad(); const m = $('pf-msg'); if (m) m.textContent = msg; } catch (e) { $('pf-msg').textContent = e.message; fail(e); } };
+  const gids = k => rows.filter(p => gl(p) === k).map(p => p.id);
+  $('pf-q').oninput = e => { PF.q = e.target.value; clearTimeout(PF.t); PF.t = setTimeout(() => { pProducts(); const i = $('pf-q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }, 300); };
+  $('pf-by').onchange = e => { PF.by = e.target.value; pProducts(); }; $('pf-only').onchange = e => { PF.only = e.target.value; pProducts(); };
+  $('pf-all').onchange = e => { root.querySelectorAll('[data-pick],[data-grp]').forEach(x => x.checked = e.target.checked); upd(); };
+  root.querySelectorAll('[data-pick]').forEach(x => x.onchange = upd);
+  root.querySelectorAll('[data-grp]').forEach(x => x.onchange = () => { gids(x.dataset.grp).forEach(id => { const c = root.querySelector(`[data-pick="${CSS.escape(id)}"]`); if (c) c.checked = x.checked; }); upd(); });
+  $('pf-set').onclick = () => { const v = $('pf-pts').value; if (v === '' || +v < 0) { $('pf-msg').textContent = 'Type the points to give the selected products.'; return; } save(picked(), +v, 'Points saved for the selected products'); };
+  $('pf-clear').onclick = () => save(picked(), null, 'Selected products are back to automatic points');
+  root.querySelectorAll('[data-gset]').forEach(b => b.onclick = () => { const v = root.querySelector(`[data-gpts="${CSS.escape(b.dataset.gset)}"]`).value; if (v === '' || +v < 0) { $('pf-msg').textContent = 'Type the points for this group first.'; return; } save(gids(b.dataset.gset), +v, 'Points saved for the group'); });
+  root.querySelectorAll('[data-gclear]').forEach(b => b.onclick = () => save(gids(b.dataset.gclear), null, 'Group is back to automatic points'));
+  root.querySelectorAll('[data-one]').forEach(i => i.onchange = () => save([i.dataset.one], i.value === '' ? null : +i.value, i.value === '' ? 'Back to automatic' : 'Points saved'));
+}
+function pMembers() {
+  $('glow-pane').innerHTML = `<div class="${card} p-4 mb-4"><h2 class="font-semibold text-sm text-brand-navy mb-2">Adjust points</h2><div class="grid sm:grid-cols-4 gap-2"><input id="ga-email" class="adm-in" placeholder="Customer account email" type="email"><input id="ga-pts" class="adm-in" type="number" step="1" placeholder="Points (negative removes)"><input id="ga-note" class="adm-in sm:col-span-1" placeholder="Reason" maxlength="150"><button class="${btn}" id="ga-go">Apply</button></div><p id="ga-msg" role="status" class="text-xs text-brand-slate mt-2 empty:hidden"></p></div>
+  <div class="${card} overflow-x-auto"><table class="w-full text-xs"><thead><tr><th class="${th}">Customer</th><th class="${th}">Points</th><th class="${th}">On the way</th><th class="${th}">Glow Friend code</th></tr></thead><tbody>${AD.members.map(m => `<tr><td class="${td}"><b>${E(m.name)}</b><br>${E(m.email)}<br>${E(m.phone || '')}</td><td class="${td} font-semibold">${P(m.balance)}</td><td class="${td}">${P(m.pending)}</td><td class="${td} font-mono">${E(m.code)}</td></tr>`).join('') || `<tr><td class="${td}" colspan="4">No members yet.</td></tr>`}</tbody></table></div>`;
+  $('ga-go').onclick = async () => { try { const r = await A('/admin/glow/adjust', { method: 'POST', body: { email: $('ga-email').value, points: $('ga-pts').value, note: $('ga-note').value } }); $('ga-msg').textContent = 'Done. New balance: ' + P(r.balance); adminLoad(); } catch (e) { $('ga-msg').textContent = e.message; } };
+}
+function pFriends() {
+  const L = { pending: 'Waiting for delivery', awarded: 'Bonus given', void: 'Cancelled' };
+  $('glow-pane').innerHTML = `<div class="${card} overflow-x-auto"><table class="w-full text-xs"><thead><tr><th class="${th}">Order</th><th class="${th}">Friend</th><th class="${th}">Referrer</th><th class="${th}">Friend discount</th><th class="${th}">Bonus points</th><th class="${th}">Status</th></tr></thead><tbody>${AD.refs.map(r => `<tr><td class="${td}">${E(r.order)}<br><span class="text-brand-slate">${d8(r.created)}</span></td><td class="${td}">${E(r.customer)}</td><td class="${td}">${E(r.referrer)}</td><td class="${td}">${N(r.discount)}</td><td class="${td}">${P(r.bonus)}</td><td class="${td}">${E(L[r.status] || r.status)}</td></tr>`).join('') || `<tr><td class="${td}" colspan="6">No Glow Friend orders yet.</td></tr>`}</tbody></table></div>`;
+}
+function pSettings() {
+  const c = AD.cfg, f = (id, l, v, t, h) => `<div><label class="block text-[11px] font-semibold text-brand-slate mb-1" for="${id}">${l}</label><input id="${id}" class="adm-in" type="${t || 'number'}" ${t ? '' : 'min="0" step="1"'} value="${E(v)}">${h ? `<small class="text-[11px] text-brand-slate">${h}</small>` : ''}</div>`;
+  $('glow-pane').innerHTML = `<form id="gs-form" novalidate class="space-y-4">
+  <div class="${card} p-4 space-y-3"><h2 class="font-semibold text-sm text-brand-navy">Programme</h2>
+    <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="gs-on" ${c.on ? 'checked' : ''}> Glow Rewards are on</label>
+    <div class="grid sm:grid-cols-2 gap-3"><div><label class="block text-[11px] font-semibold text-brand-slate mb-1" for="gs-mode">How points are worked out</label><select id="gs-mode" class="adm-in"><option value="category" ${c.mode === 'category' ? 'selected' : ''}>By product category (table below)</option><option value="spend" ${c.mode === 'spend' ? 'selected' : ''}>By total spend only</option></select></div>
+    ${f('gs-per', 'Spend per 1 point (\u20A6)', c.per_naira, 0, 'Used for spend mode, and for products no category matches.')}${f('gs-exp', 'Points expire after (months)', c.expiry_months)}${f('gs-off', 'Glow Friend: friend discount (\u20A6)', c.friend_off, 0, 'New codes use this amount in their name.')}${f('gs-bonus', 'Glow Friend: bonus points for the referrer', c.friend_bonus)}</div></div>
+  <div class="${card} p-4"><h2 class="font-semibold text-sm text-brand-navy mb-1">Points per category</h2><p class="text-[11px] text-brand-slate mb-2">A product earns the first category whose words appear in its name (top to bottom). Words are separated by commas.</p><div id="gs-cats" class="space-y-2">${c.cats.map(catRow).join('')}</div><button type="button" class="${btn2} mt-2" id="gs-addcat">Add category</button></div>
+  <div class="${card} p-4"><h2 class="font-semibold text-sm text-brand-navy mb-2">Rewards</h2><div id="gs-tiers" class="space-y-2">${c.tiers.map(tierRow).join('')}</div><button type="button" class="${btn2} mt-2" id="gs-addtier">Add reward</button></div>
+  <div class="${card} p-4"><h2 class="font-semibold text-sm text-brand-navy mb-1">Programme terms</h2><p class="text-[11px] text-brand-slate mb-2">Leave empty to use the standard wording on the page.</p><textarea id="gs-terms" rows="6" class="adm-in">${E(c.terms)}</textarea></div>
+  <p id="gs-err" role="alert" class="text-xs text-red-600 min-h-[1rem]"></p><button class="${btn}" type="submit">Save settings</button></form>`;
+  $('gs-addcat').onclick = () => $('gs-cats').insertAdjacentHTML('beforeend', catRow({ key: 'c' + Date.now(), label: '', pts: 10, kw: '' }));
+  $('gs-addtier').onclick = () => $('gs-tiers').insertAdjacentHTML('beforeend', tierRow({ id: 't' + Date.now(), name: '', pts: 100, reward: '' }));
+  $('glow-pane').onclick = e => { const x = e.target.closest('[data-rm]'); if (x) x.closest('[data-row]').remove(); };
+  $('gs-form').onsubmit = async e => {
+    e.preventDefault(); const rows = id => [...$(id).querySelectorAll('[data-row]')].map(r => Object.fromEntries([...r.querySelectorAll('[data-k]')].map(i => [i.dataset.k, i.value])));
+    const body = { on: $('gs-on').checked, mode: $('gs-mode').value, per_naira: $('gs-per').value, expiry_months: $('gs-exp').value, friend_off: $('gs-off').value, friend_bonus: $('gs-bonus').value, terms: $('gs-terms').value, cats: rows('gs-cats'), tiers: rows('gs-tiers') };
+    if (!body.tiers.length) { $('gs-err').textContent = 'Add at least one reward.'; return; }
+    try { await A('/admin/glow/config', { method: 'PUT', body }); toast('Glow Rewards settings saved'); adminLoad(); } catch (er) { $('gs-err').textContent = er.message; fail(er); }
+  };
+}
+const catRow = x => `<div data-row class="grid sm:grid-cols-[1.2fr_70px_2fr_auto] gap-2 items-center"><input data-k="label" class="adm-in" placeholder="Name shown to customers" value="${E(x.label)}" aria-label="Category name"><input data-k="pts" class="adm-in" type="number" min="0" value="${E(x.pts)}" aria-label="Points"><input data-k="kw" class="adm-in" placeholder="words in the product name, comma separated" value="${E(x.kw)}" aria-label="Matching words"><input data-k="key" type="hidden" value="${E(x.key)}"><button type="button" data-rm class="${btn2}" aria-label="Remove category">Remove</button></div>`;
+const tierRow = x => `<div data-row class="grid sm:grid-cols-[1fr_90px_2fr_auto] gap-2 items-center"><input data-k="name" class="adm-in" placeholder="Reward name" value="${E(x.name)}" aria-label="Reward name"><input data-k="pts" class="adm-in" type="number" min="1" value="${E(x.pts)}" aria-label="Points needed"><input data-k="reward" class="adm-in" placeholder="What the customer gets" value="${E(x.reward)}" aria-label="Reward"><input data-k="id" type="hidden" value="${E(x.id)}"><button type="button" data-rm class="${btn2}" aria-label="Remove reward">Remove</button></div>`;
+
+/* ---------- home strip, menu link, boot ---------- */
+function promo() {
+  const h = $('page-home'); if (!h || $('glow-promo') || !PUB.active) return;
+  h.insertAdjacentHTML('afterbegin', `<div id="glow-promo" class="bg-brand-navy text-white text-center text-xs sm:text-sm py-2.5 px-4"><button type="button" class="font-semibold hover:underline" onclick="navigateTo('glow')"><i class="fa-solid fa-gem mr-1" aria-hidden="true"></i>Glow Rewards: earn points on every order and give a friend ${N(PUB.friend_off)} off</button></div>`);
+}
+function menu() {
+  const mm = $('mm-groups'); if (mm && PUB.active && !$('mm-glow')) mm.insertAdjacentHTML('afterbegin', '<div id="mm-glow" class="pt-5 mt-1 border-t border-gray-100"><button type="button" class="text-sm font-semibold text-brand-navy" onclick="toggleMobileMenu&&toggleMobileMenu();navigateTo(\'glow\')"><i class="fa-solid fa-gem mr-2" aria-hidden="true"></i>Glow Rewards</button></div>');
+  const f = document.querySelector('footer'); if (f && PUB.active && !$('ft-glow')) { const l = f.querySelector('ul'); if (l) l.insertAdjacentHTML('beforeend', '<li id="ft-glow"><button type="button" class="hover:text-white" onclick="navigateTo(\'glow\')">Glow Rewards</button></li>'); }
+}
+function wireAll() {
+  const nav = window.navigateTo; if (typeof nav === 'function') window.navigateTo = function (p) { const r = nav.apply(this, arguments); if (p === 'glow') renderPage(); if (p === 'admin') setTimeout(adminInit, 0); return r; };
+  const co = window.checkout; if (typeof co === 'function') window.checkout = function () { const r = co.apply(this, arguments); try { coOpen(); } catch (e) { console.error(e); } return r; };
+  const at = window.adminTab; if (typeof at === 'function') window.adminTab = function (t) { adminInit(); const r = at.apply(this, arguments); if (t === 'glow') adminLoad(); return r; };
+  const ab = $('acct-body'); if (ab) new MutationObserver(tabBtn).observe(ab, { childList: true });
+  const s2 = $('co-step2'); if (s2) new MutationObserver(() => { if (!CO.note || s2.querySelector('[data-glow-note]') || s2.classList.contains('hidden') || !s2.children.length) return; s2.insertAdjacentHTML('beforeend', `<p data-glow-note class="text-xs text-brand-navy bg-brand-mist rounded-lg p-3">\u2728 ${tok() ? `You will earn about <b>${P(CO.note)} Glow Points</b> once your order is delivered.` : `This order can earn <b>${P(CO.note)} Glow Points</b>. Create a free account, then add this order under Account \u2192 Glow Points with your order reference${CO.ref ? ' <b>' + E(CO.ref) + '</b>' : ''}.`}</p>`); }).observe(s2, { childList: true });
+  const had = capture();
+  api('/glow/public').then(c => { PUB = { ...c, loaded: 1 }; promo(); menu(); if (had && c.active) toast('Your Glow Friend code is saved. It will be applied at checkout.'); }).catch(() => {});
+  if (location.hash === '#glow') navigateTo('glow');
+}
+window.addEventListener('hashchange', () => { if (location.hash === '#glow') navigateTo('glow'); });
+if (document.readyState === 'complete') wireAll(); else window.addEventListener('load', wireAll);
+})();
+</script>
+
 </body>
 </html>

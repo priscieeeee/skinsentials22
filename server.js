@@ -38,8 +38,11 @@ for (const o of db.prepare('SELECT * FROM orders WHERE id NOT IN (SELECT order_i
   const id = db.prepare('INSERT INTO payments(order_id,ref,method,amount,received,status,paid_at,confirmed_by,created,updated) VALUES(?,?,?,?,?,?,?,?,?,?)').run(o.id, o.ref, o.method, o.total, o.paid ? o.total : 0, st, o.paid_at || null, o.paid ? 'imported' : '', o.created, o.created).lastInsertRowid;
   db.prepare('INSERT INTO payment_events(payment_id,at,type,text) VALUES(?,?,?,?)').run(id, o.created, 'order', 'Order imported from the earlier version of the store');
 }
-if (!db.prepare('SELECT 1 FROM products LIMIT 1').get()) {
+if (!db.prepare("SELECT 1 FROM settings WHERE k='seeded'").get()) {   // the starter products are added once, on a brand-new store only: deleting products never brings them back
+  if (!db.prepare('SELECT 1 FROM products LIMIT 1').get()) {
   try { const seed = JSON.parse(fs.readFileSync(path.join(ROOT, 'products.seed.json'), 'utf8')); const ins = db.prepare('INSERT INTO products VALUES(?,?,?)'); seed.forEach((p, i) => ins.run(p.id, i, JSON.stringify(p))); } catch {}
+  }
+  try { db.prepare("INSERT OR IGNORE INTO settings VALUES('seeded','1')").run(); } catch {}
 }
 const DEFAULTS = { bank_name: '', account_number: '', account_name: '', extra_accounts: '[]', pay_off: '', cod_note: '', ship_lagos: '4000', ship_other: '6500', days_lagos: '1-3', days_other: '3-7', process_time: '24 hours', free_over: '0', intl_note: '', whatsapp: '2349032078594', instagram: 'skinsentials22', announcement: '' };
 const LIMITS = { extra_accounts: 1500, pay_off: 120, cod_note: 300, ship_lagos: 9, ship_other: 9, free_over: 9, days_lagos: 6, days_other: 6, process_time: 40, intl_note: 300 };
@@ -90,7 +93,7 @@ function limit(ip, bucket, max, win = 60000) {
 }
 setInterval(() => { const t = now(); for (const [k, v] of hits) if (!v.some(x => t - x < 60000)) hits.delete(k); }, 60000).unref();
 const userOut = u => ({ id: u.id, name: u.name, email: u.email, phone: u.phone, address: u.address || '', created: u.created, newsletter: !!db.prepare('SELECT active FROM subscribers WHERE email=? AND active=1').get(u.email) });
-const orderOut = o => ({ id: '#' + (1000 + o.id), ref: o.ref, customer: o.customer, email: o.email, phone: o.phone, address: o.address, items: o.item_count, lines: JSON.parse(o.items), total: o.total, discount: o.discount || 0, credit: o.credit_used || 0, shipping: o.shipping || 0, state: o.state || '', zone: o.zone || '', method: o.method, status: o.status, paid: !!o.paid, claimed: !!o.claimed, note: o.note, date: o.created, payment: o.pstatus ? { id: o.pid, status: o.pstatus, channel: o.pchannel, detail: o.pdetail, fees: o.pfees, received: o.preceived } : null });
+const orderOut = o => ({ id: '#' + (1000 + o.id), ref: o.ref, customer: o.customer, email: o.email, phone: o.phone, address: o.address, items: o.item_count, lines: JSON.parse(o.items), total: o.total, discount: (o.discount || 0) + (o.glow_disc || 0), glow: o.glow_disc || 0, credit: o.credit_used || 0, shipping: o.shipping || 0, state: o.state || '', zone: o.zone || '', method: o.method, status: o.status, paid: !!o.paid, claimed: !!o.claimed, note: o.note, date: o.created, payment: o.pstatus ? { id: o.pid, status: o.pstatus, channel: o.pchannel, detail: o.pdetail, fees: o.pfees, received: o.preceived } : null });
 
 function subscribe(email, name) {
   const ex = db.prepare('SELECT * FROM subscribers WHERE email=?').get(email);
@@ -118,7 +121,7 @@ async function notifyAdmin(title, lines) {
   const rs = await Promise.allSettled(jobs); rs.forEach(r => r.status === 'rejected' && console.error('Admin notification failed:', r.reason.message)); return rs.every(r => r.status === 'fulfilled') && jobs.length > 0;
 }
 const mailShell = (h, body) => `<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#1b2a3a"><h2 style="font-family:Georgia,serif">SKINSENTIALS22</h2><h3>${h}</h3>${body}<p style="color:#778;font-size:12px;margin-top:24px">Questions? Reply to this email or message us on WhatsApp.</p></div>`;
-const linesHtml = o => `<table style="width:100%;border-collapse:collapse;font-size:14px">${JSON.parse(o.items).map(i => `<tr><td style="padding:4px 0">${i.qty} × ${hx(i.name)}</td><td style="text-align:right">${naira(i.price * i.qty)}</td></tr>`).join('')}${o.discount ? `<tr><td style="padding:4px 0">Referral offer</td><td style="text-align:right">-${naira(o.discount)}</td></tr>` : ''}${o.credit_used ? `<tr><td style="padding:4px 0">Store credit</td><td style="text-align:right">-${naira(o.credit_used)}</td></tr>` : ''}${o.shipping ? `<tr><td style="padding:4px 0">Delivery</td><td style="text-align:right">${naira(o.shipping)}</td></tr>` : ''}<tr><td style="padding-top:8px;border-top:1px solid #ddd"><b>Total</b></td><td style="text-align:right;border-top:1px solid #ddd"><b>${naira(o.total)}</b></td></tr></table>`;
+const linesHtml = o => `<table style="width:100%;border-collapse:collapse;font-size:14px">${JSON.parse(o.items).map(i => `<tr><td style="padding:4px 0">${i.qty} × ${hx(i.name)}</td><td style="text-align:right">${naira(i.price * i.qty)}</td></tr>`).join('')}${o.glow_disc ? `<tr><td style="padding:4px 0">Glow Friend offer</td><td style="text-align:right">-${naira(o.glow_disc)}</td></tr>` : ''}${o.discount ? `<tr><td style="padding:4px 0">Referral offer</td><td style="text-align:right">-${naira(o.discount)}</td></tr>` : ''}${o.credit_used ? `<tr><td style="padding:4px 0">Store credit</td><td style="text-align:right">-${naira(o.credit_used)}</td></tr>` : ''}${o.shipping ? `<tr><td style="padding:4px 0">Delivery</td><td style="text-align:right">${naira(o.shipping)}</td></tr>` : ''}<tr><td style="padding-top:8px;border-top:1px solid #ddd"><b>Total</b></td><td style="text-align:right;border-top:1px solid #ddd"><b>${naira(o.total)}</b></td></tr></table>`;
 const quiet = p => { Promise.resolve(p).catch(e => console.error('Background task failed:', e.message)); };
 /* referral programme (see referral.js). Hooks are fenced so a referral problem can never break an order or a payment. */
 let REF = null;
@@ -149,7 +152,7 @@ function settle(o, i = {}) {
   });
   refHook('onPaid', o);
   quiet(notifyAdmin(`💰 Payment received: ${naira(got)}`, [`Order ${oid(o)} · ${o.customer}`, `Method: ${label(o.method)}${i.channel ? ' (' + i.channel + ')' : ''}`, `Reference: ${o.ref}`]));
-  quiet(sendMail(o.email, `Payment received for order ${oid(o)}`, mailShell('Thank you! We have received your payment.', `<p>Hi ${hx(o.customer)}, your order <b>${oid(o)}</b> is confirmed and we are getting it ready.</p>${linesHtml(o)}<p>Delivery to: ${hx(o.address)}${o.state ? ', ' + hx(o.state) : ''}</p><p style="color:#778">Reference ${hx(o.ref)}</p>`)));
+  quiet(sendMail(o.email, `Payment received for order ${oid(o)}`, mailShell('Thank you! We have received your payment.', `<p>Hi ${hx(o.customer)}, your order <b>${oid(o)}</b> is confirmed and we are getting it ready.</p>${linesHtml(o)}${GLOW.note(o)}<p>Delivery to: ${hx(o.address)}${o.state ? ', ' + hx(o.state) : ''}</p><p style="color:#778">Reference ${hx(o.ref)}</p>`)));
   return true;
 }
 function unsettle(o, note) {
@@ -337,8 +340,11 @@ route('POST', '/api/orders', { auth: 'optional', limit: ['order', 10] }, async (
     const seen = detectPlace(address); if (zone === 'lagos' && seen && seen !== 'Lagos' && seen !== INTL && !/lagos/i.test(address)) throw new HttpError(400, `Your address looks like it is in ${seen}, but Lagos is selected. Please check your state so the delivery fee is right.`);
   } else { state = state || 'Lagos'; zone = zoneOf(state) || 'lagos'; }
   const sub = total, shipping = shipFor(s, zone, sub, physical);
-  const rp = REF ? REF.price({ code: str(body.referral, 20).toUpperCase(), useCredit: !!body.useCredit && !!user, strict: true, user, email, phone, address, lines, sub, ship: shipping, state, method }) : { discount: 0, credit: 0, flags: [] };   // discount and credit are decided here, never by the browser
-  total = sub - rp.discount - rp.credit + shipping;
+  const gcode = str(body.glow, 40).toUpperCase().replace(/\s/g, ''), gp0 = gcode ? GLOW.price({ code: gcode, user, email, phone, lines }) : { discount: 0 };
+  if (gcode && !gp0.discount) throw new HttpError(400, gp0.message || 'This Glow Friend code cannot be used on this order.');   // a Glow Friend code replaces any other referral code on the order
+  const rp = REF ? REF.price({ code: gcode ? '' : str(body.referral, 20).toUpperCase(), useCredit: !!body.useCredit && !!user, strict: true, user, email, phone, address, lines, sub, ship: shipping, state, method }) : { discount: 0, credit: 0, flags: [] };   // discount and credit are decided here, never by the browser
+  const gp = { ...gp0, discount: Math.min(gp0.discount, Math.max(0, sub - rp.discount - rp.credit)) };
+  total = sub - rp.discount - rp.credit - gp.discount + shipping;
   const ref = 'SK22-' + crypto.randomBytes(5).toString('hex').toUpperCase();
   let authUrl = '';
   if (!PM[method].manual) { const b2 = { email, amount: total * 100, currency: 'NGN', reference: ref, callback_url: `${SITE}/?pay=${ref}`, metadata: { customer, phone, method } }; if (PM[method].ps) b2.channels = PM[method].ps; authUrl = (await paystack('POST', '/transaction/initialize', b2)).authorization_url; }
@@ -349,15 +355,16 @@ route('POST', '/api/orders', { auth: 'optional', limit: ['order', 10] }, async (
     const pid = db.prepare('INSERT INTO payments(order_id,ref,method,amount,status,created,updated) VALUES(?,?,?,?,?,?,?)').run(info.lastInsertRowid, ref, method, total, 'pending', t, t).lastInsertRowid;
     ev(pid, 'order', `New order: ${naira(total)} via ${label(method)}${PM[method].manual ? '' : ', waiting for the customer to pay'}`, 1);
     if (REF) REF.attach(info.lastInsertRowid, rp, user);
+    if (gp.discount) { GLOW.attach(info.lastInsertRowid, gp); db.prepare('UPDATE orders SET glow_disc=? WHERE id=?').run(gp.discount, info.lastInsertRowid); }
     return db.prepare('SELECT * FROM orders WHERE id=?').get(info.lastInsertRowid);
   });
-  const out = { ref, id: oid(o), total, discount: rp.discount, credit: rp.credit, shipping, method, state, zone, eta: physical ? etaText(s, zone) : '' };
+  const out = { ref, glowPoints: GLOW.estimate(lines), id: oid(o), total, discount: rp.discount + gp.discount, credit: rp.credit, shipping, method, state, zone, eta: physical ? etaText(s, zone) : '' };
   if (!PM[method].manual) out.authorization_url = authUrl;
   else if (method === 'transfer') { const accs = accountsOf(s); out.bank = { ...accs[0], narration: ref }; out.accounts = accs; }
   else if (method === 'cod') out.cod = { note: s.cod_note || '' };
   else out.dm = dmLinks(o, s);
   quiet(notifyAdmin(`🛒 New order ${oid(o)}: ${naira(total)}`, [`${customer} · ${phone}`, `Pay by: ${label(method)}`, `Items: ${lines.map(l => l.qty + 'x ' + l.name).join(', ')}`, `Deliver to: ${address}`, `Ref: ${ref}`]));
-  if (PM[method].manual) quiet(sendMail(email, `We received your order ${oid(o)}`, mailShell('Thank you for your order!', `<p>Hi ${hx(customer)}, we have your order <b>${oid(o)}</b>.</p>${linesHtml(o)}${physical ? `<p style="color:#556">${hx(etaText(s, zone))}</p>` : ''}${method === 'transfer' ? `<p><b>Please transfer ${naira(total)}</b> to one of these accounts using <b>${hx(ref)}</b> as the narration:</p>${out.accounts.map(a => `<p style="background:#f4f1ea;padding:10px;border-radius:8px">${hx(a.bank_name)}<br><b>${hx(a.account_number)}</b><br>${hx(a.account_name)}</p>`).join('')}<p>Then tap "I have made the transfer" on the website and we will confirm.</p>` : method === 'cod' ? `<p>You will pay <b>${naira(total)}</b> when it arrives. We will call to confirm delivery.</p>` : '<p>Please continue the chat with us on WhatsApp or Instagram to agree payment.</p>'}`)));
+  if (PM[method].manual) quiet(sendMail(email, `We received your order ${oid(o)}`, mailShell('Thank you for your order!', `<p>Hi ${hx(customer)}, we have your order <b>${oid(o)}</b>.</p>${linesHtml(o)}${GLOW.note(o)}${physical ? `<p style="color:#556">${hx(etaText(s, zone))}</p>` : ''}${method === 'transfer' ? `<p><b>Please transfer ${naira(total)}</b> to one of these accounts using <b>${hx(ref)}</b> as the narration:</p>${out.accounts.map(a => `<p style="background:#f4f1ea;padding:10px;border-radius:8px">${hx(a.bank_name)}<br><b>${hx(a.account_number)}</b><br>${hx(a.account_name)}</p>`).join('')}<p>Then tap "I have made the transfer" on the website and we will confirm.</p>` : method === 'cod' ? `<p>You will pay <b>${naira(total)}</b> when it arrives. We will call to confirm delivery.</p>` : '<p>Please continue the chat with us on WhatsApp or Instagram to agree payment.</p>'}`)));
   return out;
 });
 route('GET', '/api/orders/mine', { auth: 'user' }, ({ user }) => ({ orders: db.prepare(ORDER_SQL + ' WHERE o.user_id=? ORDER BY o.id DESC LIMIT 100').all(user.id).map(orderOut) }));   // by account only: an email address alone never unlocks anyone's orders
@@ -519,7 +526,7 @@ route('POST', '/api/admin/notify/test', { auth: 'admin', limit: ['ntest', 5] }, 
 });
 route('GET', '/api/admin/backup', { auth: 'admin' }, () => {
   const strip = r => { const { pw, ...x } = r; return x; };
-  return { file: { name: 'skinsentials22-backup-' + new Date().toISOString().slice(0, 10) + '.json', type: 'application/json', data: JSON.stringify({ exported: new Date().toISOString(), products: productsAll(), stock: [...stockMap()], orders: db.prepare('SELECT * FROM orders ORDER BY id').all(), payments: db.prepare('SELECT * FROM payments ORDER BY id').all(), payment_events: db.prepare('SELECT * FROM payment_events ORDER BY id').all(), users: db.prepare('SELECT * FROM users').all().map(strip), subscribers: db.prepare('SELECT * FROM subscribers').all(), brands: db.prepare('SELECT * FROM brands').all(), settings: getSettings(), content: contentRaw(), referral: Object.fromEntries(['ref_versions', 'ref_codes', 'ref_people', 'ref_orders', 'ref_ledger', 'ref_events', 'ref_flags', 'ref_audit'].map(t => [t, db.prepare('SELECT * FROM ' + t).all()])) }, null, 1) } };
+  return { file: { name: 'skinsentials22-backup-' + new Date().toISOString().slice(0, 10) + '.json', type: 'application/json', data: JSON.stringify({ exported: new Date().toISOString(), products: productsAll(), stock: [...stockMap()], orders: db.prepare('SELECT * FROM orders ORDER BY id').all(), payments: db.prepare('SELECT * FROM payments ORDER BY id').all(), payment_events: db.prepare('SELECT * FROM payment_events ORDER BY id').all(), users: db.prepare('SELECT * FROM users').all().map(strip), subscribers: db.prepare('SELECT * FROM subscribers').all(), brands: db.prepare('SELECT * FROM brands').all(), settings: getSettings(), content: contentRaw(), glow: Object.fromEntries(['glow_ledger', 'glow_claims', 'glow_codes', 'glow_refs'].map(t => [t, db.prepare('SELECT * FROM ' + t).all()])), referral: Object.fromEntries(['ref_versions', 'ref_codes', 'ref_people', 'ref_orders', 'ref_ledger', 'ref_events', 'ref_flags', 'ref_audit'].map(t => [t, db.prepare('SELECT * FROM ' + t).all()])) }, null, 1) } };
 });
 
 /* brands (name -> logo) */
@@ -875,6 +882,255 @@ return { price, attach, onPaid, onReverse, release, isLive, buildLines, balance 
 };
 REF = referralInit({ db, route, tx, now, str, HttpError, naira, csvCell, hx, sendMail, mailShell, quiet, productsAll, shipFor, zoneOf, getSettings, PM, crypto, SITE, mailOn, SECRET });
 
+/* ---------- automatic safety snapshots: your products, posts, orders and customers are copied before anything else runs ----------
+   A copy of the whole database is saved in data/backups every 6 hours at most (the 14 newest are kept). Updating server.js or index.html never touches data/. */
+(() => {
+  try {
+    const dir = path.join(DATA, 'backups'); fs.mkdirSync(dir, { recursive: true });
+    const old = fs.readdirSync(dir).filter(f => /^store-\d{8}-\d{4}\.db$/.test(f)).sort(), last = old.length ? fs.statSync(path.join(dir, old[old.length - 1])).mtimeMs : 0;
+    const snap = () => { try { const d = new Date(), z = n => String(n).padStart(2, '0'), name = `store-${d.getUTCFullYear()}${z(d.getUTCMonth() + 1)}${z(d.getUTCDate())}-${z(d.getUTCHours())}${z(d.getUTCMinutes())}.db`; const f = path.join(dir, name); if (!fs.existsSync(f)) db.exec(`VACUUM INTO '${f.replace(/'/g, "''")}'`); const all = fs.readdirSync(dir).filter(x => /^store-\d{8}-\d{4}\.db$/.test(x)).sort(); all.slice(0, Math.max(0, all.length - 14)).forEach(x => { try { fs.unlinkSync(path.join(dir, x)); } catch {} }); } catch (e) { console.error('Snapshot failed:', e.message); } };
+    if (Date.now() - last > 6 * 36e5) snap(); setInterval(() => { try { snap(); } catch {} }, 6 * 36e5).unref();
+    console.log(`Safety copy: ${db.prepare('SELECT COUNT(*) n FROM products').get().n} products are in the store.`);
+  } catch (e) { console.error('Snapshot setup failed:', e.message); }
+})();
+
+/* ---------- Glow Rewards: Glow Points + Glow Friend referrals ----------
+   Points live in an append-only ledger (glow_ledger). Hooks into orders are minimal and fenced:
+   a Glow problem can never break an order or a payment. Delete this block to remove the feature. */
+const GLOW = (() => {
+  const DAY = 864e5, GA = { auth: 'admin' };
+  db.exec(`CREATE TABLE IF NOT EXISTS glow_ledger(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, kind TEXT NOT NULL, points INTEGER NOT NULL, order_id INTEGER, claim_id INTEGER, idem TEXT NOT NULL UNIQUE, note TEXT DEFAULT '', expires_at INTEGER, created INTEGER NOT NULL);
+CREATE INDEX IF NOT EXISTS glow_ledger_user ON glow_ledger(user_id);
+CREATE TABLE IF NOT EXISTS glow_claims(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, tier TEXT NOT NULL, tier_name TEXT NOT NULL, reward TEXT DEFAULT '', points INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'requested', note TEXT DEFAULT '', created INTEGER NOT NULL, decided INTEGER);
+CREATE TABLE IF NOT EXISTS glow_links(order_id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, created INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS glow_codes(user_id INTEGER PRIMARY KEY, code TEXT NOT NULL UNIQUE, created INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS glow_refs(id INTEGER PRIMARY KEY AUTOINCREMENT, order_id INTEGER NOT NULL UNIQUE, referrer_id INTEGER NOT NULL, friend_key TEXT NOT NULL, discount INTEGER NOT NULL, bonus INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'pending', created INTEGER NOT NULL);
+CREATE UNIQUE INDEX IF NOT EXISTS glow_refs_friend ON glow_refs(friend_key) WHERE status!='void';`);
+  try { db.exec('ALTER TABLE orders ADD COLUMN glow_disc INTEGER NOT NULL DEFAULT 0'); } catch {}
+
+  /* ---- settings (editable in Admin > Glow Rewards; saved in the settings table) ---- */
+  const DEF = {
+    on: true, mode: 'category', per_naira: 400, overrides: {}, expiry_months: 12, friend_off: 1000, friend_bonus: 30, terms: '',
+    cats: [
+      { key: 'bundle', label: 'Bundles and kits', pts: 50, kw: 'bundle, kit, set, duo, trio, routine' },
+      { key: 'sunscreen', label: 'Sunscreen', pts: 20, kw: 'sunscreen, spf, sunblock, sun cream' },
+      { key: 'mask', label: 'Face mask and selected extras', pts: 10, kw: 'mask, patch' },
+      { key: 'toner', label: 'Toner or micellar water', pts: 15, kw: 'toner, micellar, essence, mist' },
+      { key: 'serum', label: 'Serum, including Vitamin C or Niacinamide', pts: 15, kw: 'serum, vitamin c, niacinamide, concentrate, ampoule, solution' },
+      { key: 'cleanser', label: 'Cleanser', pts: 10, kw: 'cleanser, cleansing, face wash, foaming wash' },
+      { key: 'moisturizer', label: 'Moisturizer', pts: 20, kw: 'moisturi, cream, lotion, gel cream' }
+    ],
+    tiers: [
+      { id: 'starter', name: 'Glow Starter', pts: 100, reward: 'A complimentary sheet mask and free delivery on your next order' },
+      { id: 'queen', name: 'Glow Queen', pts: 250, reward: 'A complimentary 50 ml cleanser and a ₦2,000 voucher' },
+      { id: 'vip', name: 'Glow VIP', pts: 500, reward: '₦5,000 off, a complimentary full-size gift, early access to new products, and a birthday gift' }
+    ]
+  };
+  const int = (v, lo, hi, d) => { v = Math.floor(+v); return Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d; };
+  const clean = c => {
+    c = c || {}; const o = { ...DEF };
+    o.on = c.on !== false; o.mode = c.mode === 'spend' ? 'spend' : 'category';
+    o.per_naira = int(c.per_naira, 1, 1e6, DEF.per_naira); o.expiry_months = int(c.expiry_months, 1, 120, DEF.expiry_months);
+    o.friend_off = int(c.friend_off, 0, 1e6, DEF.friend_off); o.friend_bonus = int(c.friend_bonus, 0, 1e5, DEF.friend_bonus); o.terms = str(c.terms, 6000);
+    o.overrides = {}; if (c.overrides && typeof c.overrides === 'object') for (const [k, v] of Object.entries(c.overrides).slice(0, 5000)) { const n = Math.floor(+v); if (k.length <= 64 && v !== '' && v !== null && Number.isFinite(n) && n >= 0 && n <= 1e5) o.overrides[k] = n; }   // per-product points set by the admin: they live here, never inside the product
+    if (Array.isArray(c.cats)) o.cats = c.cats.slice(0, 30).map((x, i) => ({ key: str(x.key, 30) || 'c' + i, label: str(x.label, 80), pts: int(x.pts, 0, 1e5, 0), kw: str(x.kw, 300) })).filter(x => x.label);
+    if (Array.isArray(c.tiers)) o.tiers = c.tiers.slice(0, 12).map((x, i) => ({ id: str(x.id, 30) || 't' + i, name: str(x.name, 60), pts: int(x.pts, 1, 1e7, 100), reward: str(x.reward, 400) })).filter(x => x.name).sort((a, b) => a.pts - b.pts);
+    return o;
+  };
+  const cfg = () => { try { return clean(JSON.parse((db.prepare("SELECT v FROM settings WHERE k='glow_cfg'").get() || {}).v || 'null')); } catch { return clean(null); } };
+
+  /* ---- points for an order ---- */
+  const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const matcher = c => c.cats.map(x => ({ ...x, re: x.kw.split(',').map(k => k.trim().toLowerCase()).filter(Boolean).map(k => new RegExp('(^|[^a-z])' + esc(k))) }));
+  function pointsFor(lines, c) {
+    c = c || cfg(); const prods = new Map(productsAll().map(p => [p.id, p])), ms = matcher(c); let total = 0; const detail = [];
+    for (const l of lines) {
+      if (l.id === 'giftcard') continue;   // gift cards never earn points
+      const p = prods.get(l.id) || {}, text = [l.name, p.name, p.tag, p.dept, p.deptLabel].filter(Boolean).join(' ').toLowerCase();
+      const hit = c.mode === 'category' ? ms.find(m => m.re.some(r => r.test(text))) : null;
+      const ov = c.overrides && Object.prototype.hasOwnProperty.call(c.overrides, l.id) ? c.overrides[l.id] : null;   // the admin's own number for this product wins
+      const pts = ov !== null ? ov * l.qty : hit ? hit.pts * l.qty : Math.floor((l.price * l.qty) / c.per_naira);   // anything no category matches falls back to the spend rate
+      if (pts > 0) { total += pts; detail.push({ name: l.name, qty: l.qty, pts, cat: hit ? hit.label : 'Spend' }); }
+    }
+    return { points: total, detail };
+  }
+  const lineOf = items => {
+    if (!Array.isArray(items) || items.length > 50) throw new HttpError(400, 'Your bag is empty.');
+    const prods = new Map(productsAll().map(p => [p.id, p])), out = [];
+    for (const it of items) {
+      const qty = Math.floor(+it.qty); if (!(qty >= 1 && qty <= 20)) continue;
+      if (it.giftCard) { out.push({ id: 'giftcard', name: 'Gift Card', price: Math.floor(+it.price) || 0, qty }); continue; }
+      const p = prods.get(str(it.id, 64)); if (p) out.push({ id: p.id, name: p.name, price: Math.round(p.price), qty });
+    }
+    return out;
+  };
+
+  /* ---- balance: spending uses the oldest points first, so expiry never double-counts what was spent ---- */
+  function balance(uid, c) {
+    c = c || cfg(); const t = now(), rows = db.prepare('SELECT points, expires_at, created FROM glow_ledger WHERE user_id=? AND points!=0 ORDER BY created, id').all(uid);
+    let neg = -rows.filter(r => r.points < 0).reduce((s, r) => s + r.points, 0), avail = 0, soon = null;
+    for (const r of rows) {
+      if (r.points <= 0) continue; const use = Math.min(r.points, neg); neg -= use; const left = r.points - use; if (!left) continue;
+      if (r.expires_at && r.expires_at <= t) continue; avail += left;
+      if (r.expires_at && (!soon || r.expires_at < soon.at)) soon = { at: r.expires_at, pts: left };
+    }
+    const prods = db.prepare("SELECT o.* FROM orders o LEFT JOIN glow_links l ON l.order_id=o.id WHERE COALESCE(o.user_id, l.user_id)=? AND o.status!='Cancelled' AND NOT EXISTS(SELECT 1 FROM glow_ledger g WHERE g.idem='earn:'||o.id)").all(uid);
+    let pending = 0; for (const o of prods) { try { pending += pointsFor(JSON.parse(o.items), c).points; } catch {} }
+    return { available: avail, pending, soon };
+  }
+  const tierInfo = (pts, c) => { const ts = c.tiers; let cur = null, next = null; for (const x of ts) { if (pts >= x.pts) cur = x; else if (!next) next = x; } return { current: cur, next, need: next ? next.pts - pts : 0 }; };
+  const expiryAt = (c, from) => { const d = new Date(from || now()); d.setMonth(d.getMonth() + c.expiry_months); return d.getTime(); };
+  const ins = (uid, kind, points, oid, claim, idem, note, exp) => db.prepare('INSERT OR IGNORE INTO glow_ledger(user_id,kind,points,order_id,claim_id,idem,note,expires_at,created) VALUES(?,?,?,?,?,?,?,?,?)').run(uid, kind, points, oid || null, claim || null, idem, str(note, 200), exp || null, now()).changes;
+
+  /* ---- earn / reverse / friend bonus: idempotent, safe to run as often as we like ---- */
+  let busy = false;
+  function sync() {
+    if (busy) return; busy = true;
+    try {
+      const c = cfg(); if (!c.on) return;
+      for (const u of db.prepare('SELECT * FROM users WHERE id NOT IN (SELECT user_id FROM glow_codes) LIMIT 200').all()) { try { codeFor(u, c); } catch (e) { console.error('Glow code failed for user', u.id, e.message); } }   // every account has its Glow Friend code ready
+      for (const o of db.prepare("SELECT o.*, COALESCE(o.user_id, l.user_id) AS uid FROM orders o LEFT JOIN glow_links l ON l.order_id=o.id WHERE COALESCE(o.user_id, l.user_id) IS NOT NULL AND o.paid=1 AND o.status='Delivered' AND NOT EXISTS(SELECT 1 FROM glow_ledger g WHERE g.idem='earn:'||o.id)").all()) {
+        try { const r = pointsFor(JSON.parse(o.items), c); ins(o.uid, 'earn', r.points, o.id, 0, 'earn:' + o.id, 'Order ' + oid(o), expiryAt(c)); } catch (e) { console.error('Glow earn failed for order', o.id, e.message); }
+      }
+      for (const e of db.prepare("SELECT l.*, o.paid, o.status FROM glow_ledger l JOIN orders o ON o.id=l.order_id WHERE l.kind='earn' AND l.points>0").all()) {   // order cancelled or marked unpaid after points were given: take them back; reinstated: give them back
+        const net = db.prepare("SELECT COALESCE(SUM(points),0) s, COUNT(*) n FROM glow_ledger WHERE order_id=? AND user_id=? AND kind IN('earn','reverse','restore')").get(e.order_id, e.user_id), bad = !e.paid || e.status === 'Cancelled';
+        if (bad && net.s > 0) ins(e.user_id, 'reverse', -e.points, e.order_id, 0, `rev:${e.order_id}:${net.n}`, 'Order cancelled or not paid');
+        else if (!bad && net.s <= 0) ins(e.user_id, 'restore', e.points, e.order_id, 0, `res:${e.order_id}:${net.n}`, 'Order reinstated', expiryAt(c));
+      }
+      for (const r of db.prepare("SELECT r.*, o.paid, o.status ost FROM glow_refs r JOIN orders o ON o.id=r.order_id WHERE r.status IN('pending','awarded')").all()) {
+        if (r.ost === 'Cancelled') {
+          if (r.status === 'awarded' && r.bonus > 0) ins(r.referrer_id, 'reverse', -r.bonus, r.order_id, 0, 'fbrev:' + r.id, 'Friend order cancelled');
+          db.prepare("UPDATE glow_refs SET status='void' WHERE id=?").run(r.id);   // frees the friend's one use
+        } else if (r.status === 'pending' && r.paid && r.ost === 'Delivered') {
+          if (r.bonus > 0) ins(r.referrer_id, 'bonus', r.bonus, r.order_id, 0, 'fb:' + r.id, 'Glow Friend order completed', expiryAt(c));
+          db.prepare("UPDATE glow_refs SET status='awarded' WHERE id=? AND status='pending'").run(r.id);
+        }
+      }
+    } catch (e) { console.error('Glow sync failed:', e.message); } finally { busy = false; }
+  }
+  setInterval(sync, 6e4).unref();
+
+  /* ---- Glow Friend codes: GLOW-[FIRST NAME]1000 ---- */
+  const canon = e => { const [l, d] = String(e || '').toLowerCase().split('@'); if (!d) return String(e || '').toLowerCase(); return (/^(gmail|googlemail)\./.test(d) ? l.split('+')[0].replace(/\./g, '') : l.split('+')[0]) + '@' + d; };
+  const tail = p => String(p || '').replace(/\D/g, '').slice(-10);
+  const fkey = e => crypto.createHmac('sha256', SECRET).update('glow:' + canon(e)).digest('hex');
+  function codeFor(user, c) {
+    let r = db.prepare('SELECT code FROM glow_codes WHERE user_id=?').get(user.id); if (r) return r.code;
+    const first = (String(user.name || '').trim().split(/\s+/)[0] || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12) || 'FRIEND';
+    for (let k = 1; k < 500; k++) {
+      const code = k === 1 ? `GLOW-${first}${c.friend_off}` : `GLOW-${first}${k}-${c.friend_off}`;
+      if (db.prepare('INSERT OR IGNORE INTO glow_codes(user_id,code,created) VALUES(?,?,?)').run(user.id, code, now()).changes) return code;
+      if ((r = db.prepare('SELECT code FROM glow_codes WHERE user_id=?').get(user.id))) return r.code;   // created by a parallel request
+    }
+    throw new HttpError(500, 'Could not create your code. Please try again.');
+  }
+  const BAD = 'This Glow Friend code cannot be used on this order.';
+  function price(a) {   // a = { code, user, email, phone, lines } -> { discount, referrer?, message }
+    const c = cfg(), fail = m => ({ discount: 0, message: m });
+    if (!c.on || !c.friend_off) return fail('Glow Friend offers are not running right now.');
+    const rc = /^GLOW-[A-Z0-9-]{3,30}$/.test(a.code) && db.prepare('SELECT g.user_id, u.email, u.phone FROM glow_codes g JOIN users u ON u.id=g.user_id WHERE g.code=?').get(a.code);
+    if (!rc) return fail(BAD);
+    const email = String(a.email || '').toLowerCase(); if (!emailOk(email)) return fail('Enter your email address first, then apply the code.');
+    if ((a.user && a.user.id === rc.user_id) || canon(email) === canon(rc.email) || (tail(a.phone) && tail(a.phone) === tail(rc.phone))) return fail(BAD);   // own code: same answer as an unknown code
+    const elig = a.lines.filter(l => l.id !== 'giftcard').reduce((t, l) => t + l.price * l.qty, 0); if (!elig) return fail('The Glow Friend offer applies to skincare products, not gift cards.');
+    const prev = db.prepare("SELECT id, user_id, phone FROM orders WHERE status!='Cancelled' AND (lower(email)=? OR (? IS NOT NULL AND user_id=?))").all(email, a.user ? a.user.id : null, a.user ? a.user.id : null);
+    if (prev.length || (tail(a.phone) && db.prepare("SELECT phone FROM orders WHERE status!='Cancelled'").all().some(o => tail(o.phone) === tail(a.phone)))) return fail('The Glow Friend offer is for first orders only.');
+    if (db.prepare("SELECT 1 FROM glow_refs WHERE friend_key=? AND status!='void'").get(fkey(email))) return fail('This offer has already been used with this email address.');
+    return { discount: Math.min(c.friend_off, elig), referrer: rc.user_id, key: fkey(email), bonus: c.friend_bonus };
+  }
+  function attach(orderId, gp) {   // inside the order transaction
+    if (!gp || !gp.discount) return;
+    try { db.prepare('INSERT INTO glow_refs(order_id,referrer_id,friend_key,discount,bonus,created) VALUES(?,?,?,?,?,?)').run(orderId, gp.referrer, gp.key, gp.discount, gp.bonus, now()); }
+    catch { throw new HttpError(409, 'This Glow Friend offer was just used. Please remove the code and try again.'); }
+  }
+
+  /* ---- public + customer routes ---- */
+  const pub = c => ({ active: c.on, mode: c.mode, per_naira: c.per_naira, expiry_months: c.expiry_months, friend_off: c.friend_off, friend_bonus: c.friend_bonus, cats: c.cats.map(x => ({ label: x.label, pts: x.pts })), tiers: c.tiers, terms: c.terms, whatsapp: getSettings().whatsapp || '' });
+  route('GET', '/api/glow/public', { limit: ['gpub', 60] }, () => pub(cfg()));
+  route('POST', '/api/glow/quote', { auth: 'optional', limit: ['gq', 30] }, ({ user, body }) => {
+    const c = cfg(), lines = lineOf(body.items), sub = lines.reduce((t, l) => t + l.price * l.qty, 0), code = str(body.code, 40).toUpperCase().replace(/\s/g, '');
+    const pts = c.on && user ? pointsFor(lines, c).points : 0, out = { signedIn: !!user, earn: pts, on: c.on, discount: 0, message: '', subtotal: sub };
+    if (code) { const g = price({ code, user, email: str(body.email, 254).toLowerCase(), phone: str(body.phone, 30), lines }); out.discount = g.discount; out.message = g.message || ''; }
+    const physical = lines.some(l => l.id !== 'giftcard'), zone = zoneOf(str(body.state, 40)); out.shippingKnown = !physical || (!!zone && zone !== 'intl'); out.shipping = physical && out.shippingKnown ? shipFor(getSettings(), zone, sub, true) : 0; out.total = sub - out.discount + out.shipping;
+    return out;
+  });
+  route('GET', '/api/glow/me', { auth: 'user' }, ({ user }) => {
+    sync(); const c = cfg(), b = balance(user.id, c), t = tierInfo(b.available, c), code = c.on ? codeFor(user, c) : '';
+    const hist = db.prepare("SELECT kind, points, note, created, expires_at FROM glow_ledger WHERE user_id=? AND points!=0 ORDER BY id DESC LIMIT 40").all(user.id);
+    const claims = db.prepare('SELECT id, tier_name, reward, points, status, note, created FROM glow_claims WHERE user_id=? ORDER BY id DESC LIMIT 20').all(user.id);
+    const fr = db.prepare("SELECT status, COUNT(*) n FROM glow_refs WHERE referrer_id=? AND status!='void' GROUP BY status").all(user.id), n = s => (fr.find(x => x.status === s) || {}).n || 0;
+    return { ...pub(c), balance: b.available, pending: b.pending, soon: b.soon, tier: t.current, next: t.next, need: t.need, code, link: code ? `${SITE}/?glow=${code}` : '', hist, claims, friends: { done: n('awarded'), waiting: n('pending') }, name: user.name };
+  });
+  route('POST', '/api/glow/claim', { auth: 'user', limit: ['gclaim', 6] }, ({ user, body }) => {
+    sync(); const c = cfg(); if (!c.on) throw new HttpError(409, 'Glow Rewards are not running right now.');
+    const t = c.tiers.find(x => x.id === str(body.tier, 30)); if (!t) throw new HttpError(400, 'Choose a reward.');
+    const out = tx(() => {
+      const b = balance(user.id, c); if (b.available < t.pts) throw new HttpError(409, `You need ${t.pts} Glow Points for ${t.name}. You have ${b.available}.`);
+      const id = db.prepare('INSERT INTO glow_claims(user_id,tier,tier_name,reward,points,created) VALUES(?,?,?,?,?,?)').run(user.id, t.id, t.name, t.reward, t.pts, now()).lastInsertRowid;
+      ins(user.id, 'redeem', -t.pts, 0, id, 'claim:' + id, t.name + ' reward requested');
+      return id;
+    });
+    const s = getSettings(), msg = `Hello Skinsentials22, I would like to claim my ${t.name} reward (${t.pts} Glow Points). Claim #${out}. Name: ${user.name}. Email: ${user.email}`;
+    quiet(notifyAdmin(`✨ Glow reward claim #${out}: ${t.name}`, [`${user.name} · ${user.phone || user.email}`, `${t.pts} points · ${t.reward}`, 'Confirm it in Admin > Glow Rewards.']));
+    return { id: out, whatsapp: s.whatsapp ? `https://wa.me/${s.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}` : '' };
+  });
+
+  /* ---- earlier guest orders: a signed-in customer proves an order is theirs with its reference + the email or phone used ---- */
+  route('POST', '/api/glow/link-order', { auth: 'user', limit: ['glink', 8] }, ({ user, body }) => {
+    const c = cfg(); if (!c.on) throw new HttpError(409, 'Glow Rewards are not running right now.');
+    const ref = str(body.ref, 40).toUpperCase().replace(/\s/g, ''), contact = str(body.contact, 254).trim(), NO = 'We could not match that order. Check the order reference and the email or phone you used when you ordered.';
+    const o = /^SK22-[0-9A-F]{10}$/.test(ref) && db.prepare('SELECT * FROM orders WHERE ref=?').get(ref); if (!o || !contact) throw new HttpError(404, NO);
+    const same = contact.includes('@') ? canon(contact) === canon(o.email) : (tail(contact).length >= 7 && tail(contact) === tail(o.phone));
+    if (!same || o.status === 'Cancelled') throw new HttpError(404, NO);
+    if (o.user_id && o.user_id !== user.id) throw new HttpError(404, NO);
+    const had = db.prepare('SELECT user_id FROM glow_links WHERE order_id=?').get(o.id); if (had && had.user_id !== user.id) throw new HttpError(404, NO);
+    if (o.user_id === user.id || had) return { ok: true, already: true, message: 'That order is already on your account.' };
+    db.prepare('INSERT OR IGNORE INTO glow_links(order_id,user_id,created) VALUES(?,?,?)').run(o.id, user.id, now()); sync();
+    const pts = pointsFor(JSON.parse(o.items), c).points; return { ok: true, points: pts, message: pts ? `Order ${oid(o)} added. It will earn about ${pts} Glow Points once it is paid and delivered.` : `Order ${oid(o)} added.` };
+  });
+  const estimate = lines => { try { const c = cfg(); return c.on ? pointsFor(lines, c).points : 0; } catch { return 0; } };
+  const note = o => {   // one paragraph for order emails
+    try { const c = cfg(), pts = c.on ? pointsFor(JSON.parse(o.items), c).points : 0; if (!pts) return '';
+      return o.user_id ? `<p style="background:#f4f7fb;padding:10px 12px;border-radius:8px">✨ You will earn about <b>${pts} Glow Points</b> once this order is delivered. See your balance in your account under Glow Points.</p>`
+        : `<p style="background:#f4f7fb;padding:10px 12px;border-radius:8px">✨ This order can earn <b>${pts} Glow Points</b>. Create a free account, open <b>Account → Glow Points</b> and add this order with its reference <b>${hx(o.ref)}</b>.</p>`; } catch { return ''; }
+  };
+
+  /* ---- admin routes ---- */
+  route('GET', '/api/admin/glow', GA, () => {
+    sync(); const c = cfg(), prods = productsAll;
+    const members = db.prepare('SELECT u.id, u.name, u.email, u.phone FROM users u WHERE u.id IN (SELECT user_id FROM glow_ledger) OR u.id IN (SELECT user_id FROM glow_codes) ORDER BY u.id DESC LIMIT 300').all().map(u => { const b = balance(u.id, c); return { ...u, balance: b.available, pending: b.pending, code: (db.prepare('SELECT code FROM glow_codes WHERE user_id=?').get(u.id) || {}).code || '' }; }).sort((a, b) => b.balance - a.balance);
+    const claims = db.prepare('SELECT g.*, u.name, u.email, u.phone FROM glow_claims g JOIN users u ON u.id=g.user_id ORDER BY (g.status IN (\'requested\',\'approved\')) DESC, g.id DESC LIMIT 200').all();
+    const refs = db.prepare('SELECT r.id, r.status, r.discount, r.bonus, r.created, o.id oid, o.customer, (SELECT name FROM users WHERE id=r.referrer_id) referrer FROM glow_refs r JOIN orders o ON o.id=r.order_id ORDER BY r.id DESC LIMIT 100').all().map(r => ({ ...r, order: '#' + (1000 + r.oid) }));
+    const owed = members.reduce((s, m) => s + m.balance, 0);
+    const ms = matcher(c), products = prods().map(p => { const text = [p.name, p.tag, p.dept, p.deptLabel].filter(Boolean).join(' ').toLowerCase(), hit = c.mode === 'category' ? ms.find(m => m.re.some(r => r.test(text))) : null; return { id: p.id, name: p.name, brand: p.brand || '', category: p.category || '', dept: p.deptLabel || p.dept || '', price: p.price, auto: hit ? hit.pts : Math.floor(Math.round(p.price) / c.per_naira), autoCat: hit ? hit.label : 'Spend rate', override: Object.prototype.hasOwnProperty.call(c.overrides, p.id) ? c.overrides[p.id] : null }; });
+    return { cfg: c, products, stats: { members: members.length, outstanding: owed, open: claims.filter(x => ['requested', 'approved'].includes(x.status)).length, friendOrders: refs.filter(r => r.status !== 'void').length }, members, claims, refs };
+  });
+  route('PUT', '/api/admin/glow/config', GA, ({ body }) => { const c = clean({ ...body, overrides: cfg().overrides }); db.prepare("INSERT INTO settings VALUES('glow_cfg',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v").run(JSON.stringify(c)); return { cfg: c }; });
+  route('PUT', '/api/admin/glow/overrides', GA, ({ body }) => {   // body: { ids: [...], points: number | null }  (null = back to automatic)
+    const ids = Array.isArray(body.ids) ? body.ids.map(x => str(x, 64)).filter(Boolean).slice(0, 5000) : [], c = cfg(), ov = { ...c.overrides };
+    if (!ids.length) throw new HttpError(400, 'Choose at least one product.');
+    const clear = body.points === null || body.points === '' || body.points === undefined; const n = Math.floor(+body.points);
+    if (!clear && !(Number.isFinite(n) && n >= 0 && n <= 1e5)) throw new HttpError(400, 'Enter points between 0 and 100000.');
+    for (const id of ids) { if (clear) delete ov[id]; else ov[id] = n; }
+    const out = clean({ ...c, overrides: ov }); db.prepare("INSERT INTO settings VALUES('glow_cfg',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v").run(JSON.stringify(out)); return { ok: true, changed: ids.length, overrides: Object.keys(out.overrides).length };
+  });
+  route('POST', '/api/admin/glow/claims/:id', GA, ({ params, body }) => {
+    const st = str(body.status, 12), cl = db.prepare('SELECT * FROM glow_claims WHERE id=?').get(+params.id); if (!cl) throw new HttpError(404, 'Claim not found');
+    if (!['approved', 'fulfilled', 'rejected'].includes(st)) throw new HttpError(400, 'Invalid status');
+    if (['fulfilled', 'rejected'].includes(cl.status)) throw new HttpError(409, 'This claim is already closed.');
+    tx(() => { db.prepare('UPDATE glow_claims SET status=?, note=?, decided=? WHERE id=?').run(st, str(body.note, 300), now(), cl.id); if (st === 'rejected') ins(cl.user_id, 'refund', cl.points, 0, cl.id, 'claimrej:' + cl.id, 'Reward request declined, points returned', expiryAt(cfg())); });
+    return { ok: true };
+  });
+  route('POST', '/api/admin/glow/adjust', GA, ({ body }) => {
+    const u = db.prepare('SELECT * FROM users WHERE lower(email)=?').get(str(body.email, 254).toLowerCase()), p = Math.trunc(+body.points);
+    if (!u) throw new HttpError(404, 'No account with that email.'); if (!p || Math.abs(p) > 1e6) throw new HttpError(400, 'Enter the points to add (or a negative number to remove).');
+    ins(u.id, 'adjust', p, 0, 0, 'adj:' + crypto.randomBytes(6).toString('hex'), str(body.note, 150) || 'Adjusted by Skinsentials22', p > 0 ? expiryAt(cfg()) : 0);
+    return { balance: balance(u.id).available };
+  });
+  sync();
+  return { price, attach, sync, estimate, note };
+})();
+
 /* ---------- server ---------- */
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.webp': 'image/webp', '.gif': 'image/gif', '.txt': 'text/plain', '.mp4': 'video/mp4', '.m4v': 'video/mp4', '.mov': 'video/quicktime', '.webm': 'video/webm', '.ogv': 'video/ogg', '.jpeg': 'image/jpeg' };
 function readBody(req, max) {
@@ -899,6 +1155,102 @@ function serveUpload(req, res, name) {
   if (req.method === 'HEAD') return res.end();
   const st = fs.createReadStream(f, { start, end }); st.on('error', () => res.destroy()); res.on('close', () => st.destroy()); st.pipe(res);
 }
+
+/* ---------- SEO: crawlable URLs, sitemap, robots, real titles/descriptions/Product data in the HTML ----------
+   Google and WhatsApp/Facebook previews read the HTML the server sends. This gives every product, blog post and
+   main page its own address (/p/ID/name, /blog/ID/title, /shop ...) with its own title, description, canonical link,
+   social preview and Product structured data, plus /sitemap.xml and /robots.txt. It only reads; it never changes products. */
+const SEO = (() => {
+  const PAGES = { '/shop': ['Shop Skincare in Nigeria — Serums, Moisturisers & Cleansers | Skinsentials22', 'Browse all skincare essentials for every skin type. Authentic products, prices in naira, delivery across Nigeria.', 'catalog'],
+    '/videos': ['Skincare Video Guides — Watch & Shop | Skinsentials22', 'Watch expert skincare video guides and shop the products featured.'],
+    '/skin-quiz': ['Skin Finder Quiz — Find Your Routine | Skinsentials22', 'Answer a few questions and get a personalised skincare routine.'],
+    '/skin-consultation': ['Free Skin Consultation in Nigeria | Skinsentials22', 'Talk to our skincare team and get routine advice that fits your skin and budget.'],
+    '/ingredients': ['Shop Skincare by Ingredient | Skinsentials22', 'Find products by the ingredient your skin needs.'],
+    '/gift-cards': ['Skincare Gift Cards | Skinsentials22', 'Send a Skinsentials22 gift card with a personal message.'],
+    '/brands': ['Skincare Brands We Stock | Skinsentials22', 'Explore the skincare and beauty brands available at Skinsentials22.'],
+    '/journal': ['Skincare Journal — Routines, Ingredients & Tips | Skinsentials22', 'Practical skincare advice and ingredient guides from the Skinsentials22 team.'],
+    '/glow-rewards': ['Glow Rewards — Earn Points & Skincare Rewards | Skinsentials22', 'Earn Glow Points on every order, unlock skincare rewards and give a friend money off their first order.'] };
+  const e = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const slug = s => String(s || '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80) || 'item';
+  const trim = (s, n) => { s = String(s || '').replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n - 1).replace(/\s\S*$/, '') + '…' : s; };
+  const abs = u => !u ? '' : /^https?:/i.test(u) ? u : /^data:/.test(u) ? '' : SITE + (u[0] === '/' ? '' : '/') + u;
+  const jsn = o => JSON.stringify(o).replace(/</g, '\\u003c');
+  const prods = () => { try { return productsAll().filter(p => p && p.id && !p.hidden && !p.draft); } catch { return []; } };
+  const posts = () => { try { return ((contentRaw() || {}).posts || []).filter(p => p && p.pub && p.id); } catch { return []; } };
+  const pUrl = p => `${SITE}/p/${encodeURIComponent(p.id)}/${slug(p.name)}`, bUrl = p => `${SITE}/blog/${encodeURIComponent(p.id)}/${slug(p.title)}`;
+  const day = () => new Date().toISOString().slice(0, 10);
+  function page(m) {
+    let h; try { h = fs.readFileSync(path.join(PUB, 'index.html'), 'utf8'); } catch { return null; }
+    for (const re of [/<title>[\s\S]*?<\/title>/, /<meta name="description"[^>]*>/, /<link rel="canonical"[^>]*>/, /<meta property="og:(title|description|url|type|image)"[^>]*>/g, /<meta name="twitter:(title|description|image)"[^>]*>/g]) h = h.replace(re, '');
+    const tags = `<title>${e(m.title)}</title><meta name="description" content="${e(m.desc)}"><link rel="canonical" id="sk-canon" href="${e(m.url)}"><meta property="og:title" content="${e(m.title)}"><meta property="og:description" content="${e(m.desc)}"><meta property="og:url" content="${e(m.url)}"><meta property="og:type" content="${m.type || 'website'}">` +
+      (m.image ? `<meta property="og:image" content="${e(m.image)}"><meta name="twitter:image" content="${e(m.image)}">` : '') + `<meta name="twitter:title" content="${e(m.title)}"><meta name="twitter:description" content="${e(m.desc)}"><script>window.__SK_SEO__=${jsn(m.boot || { route: 'page' })};</script>`;
+    h = h.replace('</head>', () => tags + '</head>');
+    if (m.ld) h = h.replace('<script type="application/ld+json" id="sk-ld-page"></script>', () => `<script type="application/ld+json" id="sk-ld-page">${jsn(m.ld)}</script>`);
+    if (m.body) h = h.replace(/(<body[^>]*>)/, (x, b) => b + '<noscript>' + m.body + '</noscript>');
+    return h;
+  }
+  const links = () => '<ul>' + prods().slice(0, 200).map(p => `<li><a href="/p/${encodeURIComponent(p.id)}/${slug(p.name)}">${e(p.name)}</a> ₦${Math.round(+p.price || 0).toLocaleString('en-NG')}</li>`).join('') + '</ul>';
+  const crumbs = l => ({ '@type': 'BreadcrumbList', itemListElement: l.map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c[0], item: c[1] })) });
+  const nf = (res) => false;
+  /* returns true when it handled the request */
+  const setting = k => { try { return (db.prepare('SELECT v FROM settings WHERE k=?').get(k) || {}).v || ''; } catch { return ''; } };
+  const keySet = (k, v) => { try { db.prepare('INSERT INTO settings VALUES(?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v').run(k, v); } catch {} };
+  const ixKey = () => { let k = setting('indexnow_key'); if (!/^[a-f0-9]{32}$/.test(k)) { k = crypto.randomBytes(16).toString('hex'); keySet('indexnow_key', k); } return k; };
+  const handle = function (req, res, url) {
+    const p = url.pathname, html = (code, body) => { send(res, code, req.method === 'HEAD' ? '' : body, 'text/html; charset=utf-8', { 'Cache-Control': 'no-cache' }); return true; };
+    if (/^\/[a-f0-9]{32}\.txt$/.test(p) && p.slice(1, 33) === ixKey()) { send(res, 200, p.slice(1, 33), 'text/plain; charset=utf-8'); return true; }   // proves to search engines that this site owns the IndexNow key
+    if (p === '/robots.txt') { send(res, 200, `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /uploads/private/\n\nSitemap: ${SITE}/sitemap.xml\n`, 'text/plain; charset=utf-8', { 'Cache-Control': 'public, max-age=3600' }); return true; }
+    if (p === '/sitemap.xml') {
+      const u = (l, pr, img) => `<url><loc>${e(l)}</loc><lastmod>${day()}</lastmod><priority>${pr}</priority>${img ? `<image:image><image:loc>${e(img)}</image:loc></image:image>` : ''}</url>`;
+      send(res, 200, '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">' + u(SITE + '/', '1.0') + Object.keys(PAGES).map(k => u(SITE + k, '0.8')).join('') + prods().map(x => u(pUrl(x), '0.9', abs(x.image))).join('') + posts().map(x => u(bUrl(x), '0.6', abs(x.cover))).join('') + '</urlset>', 'application/xml; charset=utf-8', { 'Cache-Control': 'public, max-age=3600' }); return true;
+    }
+    let m;
+    if ((m = /^\/p\/([^/]+)(?:\/([^/]*))?\/?$/.exec(p))) {
+      let id; try { id = decodeURIComponent(m[1]); } catch { return false; }
+      const x = prods().find(q => String(q.id) === id); if (!x) return false;
+      const url2 = pUrl(x); if (m[2] !== slug(x.name)) { res.writeHead(301, { Location: url2.replace(SITE, '') }); res.end(); return true; }
+      const price = Math.round(+x.price || 0), img = abs(x.image), out = typeof x.stock === 'number' && x.stock <= 0;
+      const ld = { '@context': 'https://schema.org', '@graph': [{ '@type': 'Product', name: x.name, description: trim(x.description, 300), sku: String(x.id), category: x.category, image: img ? [img] : undefined, brand: { '@type': 'Brand', name: x.brand || 'Skinsentials22' }, url: url2, offers: { '@type': 'Offer', url: url2, priceCurrency: 'NGN', price: String(price), itemCondition: 'https://schema.org/NewCondition', availability: out ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock' } }, crumbs([['Home', SITE + '/'], ['Shop', SITE + '/shop'], [x.name, url2]])] };
+      const body = page({ title: `${x.name} — Buy in Nigeria | Skinsentials22`, desc: `${trim(x.description, 150)} ₦${price.toLocaleString('en-NG')}.`, url: url2, type: 'product', image: img, boot: { route: 'product', id: String(x.id) }, ld, body: `<article><h1>${e(x.name)}</h1><p>${e(x.description)}</p><p>₦${price.toLocaleString('en-NG')}</p><p>${e(x.ingredients || '')}</p><a href="/shop">Shop all skincare</a></article>` });
+      return body ? html(200, body) : false;
+    }
+    if ((m = /^\/blog\/([^/]+)(?:\/([^/]*))?\/?$/.exec(p))) {
+      let id; try { id = decodeURIComponent(m[1]); } catch { return false; }
+      const x = posts().find(q => String(q.id) === id); if (!x) return false;
+      const url2 = bUrl(x); if (m[2] !== slug(x.title)) { res.writeHead(301, { Location: url2.replace(SITE, '') }); res.end(); return true; }
+      const ld = { '@context': 'https://schema.org', '@type': 'BlogPosting', headline: x.title, image: abs(x.cover) || undefined, datePublished: x.date ? new Date(x.date).toISOString() : undefined, author: { '@type': 'Organization', name: 'Skinsentials22' }, mainEntityOfPage: url2 };
+      const body = page({ title: `${x.title} | Skinsentials22 Journal`, desc: trim(String(x.excerpt || x.body || '').replace(/^## /gm, ''), 155), url: url2, type: 'article', image: abs(x.cover), boot: { route: 'post', id: String(x.id) }, ld, body: `<article><h1>${e(x.title)}</h1><p>${e(trim(x.body, 1500))}</p></article>` });
+      return body ? html(200, body) : false;
+    }
+    const key = p.length > 1 ? p.replace(/\/$/, '') : p;
+    if (PAGES[key]) {
+      const [title, desc] = PAGES[key], ld = key === '/shop' ? { '@context': 'https://schema.org', '@graph': [crumbs([['Home', SITE + '/'], ['Shop', SITE + '/shop']]), { '@type': 'ItemList', itemListElement: prods().slice(0, 50).map((x, i) => ({ '@type': 'ListItem', position: i + 1, url: pUrl(x), name: x.name })) }] } : undefined;
+      const body = page({ title, desc, url: SITE + key, boot: { route: 'page' }, ld, body: `<h1>${e(title.split(' | ')[0])}</h1><p>${e(desc)}</p>${key === '/shop' ? links() : ''}<a href="/">Home</a>` });
+      return body ? html(200, body) : false;
+    }
+    return false;
+  };
+  handle.key = ixKey; handle.setting = setting; handle.save = keySet;
+  handle.urls = () => { const o = {}, hs = v => crypto.createHash('sha1').update(JSON.stringify(v)).digest('hex').slice(0, 12); prods().forEach(x => { o[pUrl(x)] = hs([x.name, x.price, x.description, x.image, x.stock, x.brand, x.category]); }); posts().forEach(x => { o[bUrl(x)] = hs([x.title, x.body, x.cover]); }); return o; };
+  return handle;
+})();
+
+/* ---------- anything you post reaches search engines on its own ----------
+   Every product and blog post already has its own page and is listed in /sitemap.xml the moment you save it. On top of that, within
+   2 minutes of adding, changing or deleting one, Bing, Yandex and other IndexNow search engines are told directly. Google reads the
+   sitemap by itself (submit it once in Google Search Console). Skipped while SITE_URL is localhost. */
+(() => {
+  if (/localhost|127\.0\.0\.1/.test(SITE) || ENV.INDEXNOW === '0') return;
+  const run = async () => {
+    try {
+      const cur = SEO.urls(); let known = {}; try { known = JSON.parse(SEO.setting('seo_known') || '{}'); } catch {}
+      const changed = Object.keys(cur).filter(u => known[u] !== cur[u]).concat(Object.keys(known).filter(u => !(u in cur))); if (!changed.length) return;
+      const key = SEO.key(), r = await fetch('https://api.indexnow.org/indexnow', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify({ host: new URL(SITE).host, key, keyLocation: `${SITE}/${key}.txt`, urlList: [...new Set([SITE + '/', SITE + '/shop', ...changed.slice(0, 9000)])] }), signal: AbortSignal.timeout(15000) });
+      if (r.status === 200 || r.status === 202) { SEO.save('seo_known', JSON.stringify(cur)); console.log(`Search engines told about ${changed.length} new or changed page(s).`); } else console.error('IndexNow answered', r.status, '(will retry)');
+    } catch (e) { console.error('IndexNow failed (will retry):', e.message); }
+  };
+  setTimeout(run, 30e3).unref(); setInterval(run, 120e3).unref();
+})();
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x'), ip = (ENV.TRUST_PROXY === '1' && String(req.headers['x-forwarded-for'] || '').split(',').pop().trim()) || req.socket.remoteAddress || '';   // last entry = the one our own proxy added; the first can be forged by the visitor
@@ -926,6 +1278,7 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, JSON.stringify(out), undefined, { ...cors, 'Cache-Control': 'no-store' });
     }
     if (req.method !== 'GET' && req.method !== 'HEAD') throw new HttpError(405, 'Method not allowed');
+    if (SEO(req, res, url)) return;
     if (url.pathname.startsWith('/uploads/')) return serveUpload(req, res, path.basename(decodeURIComponent(url.pathname)));
     let f = path.normalize(path.join(PUB, url.pathname === '/' ? 'index.html' : decodeURIComponent(url.pathname)));
     if (!f.startsWith(PUB + path.sep) || path.basename(f).startsWith('.')) throw new HttpError(404, 'Not found');
