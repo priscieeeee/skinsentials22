@@ -416,6 +416,11 @@ route('PATCH', '/api/admin/orders/:id', { auth: 'admin' }, ({ params, body }) =>
   if (typeof body.paid === 'boolean') { const fresh = db.prepare('SELECT * FROM orders WHERE id=?').get(o.id); if (body.paid) { if (fresh.status === 'Cancelled') throw new HttpError(409, 'This order is cancelled.'); settle(fresh, { by: 'admin' }); } else unsettle(fresh); }
   return { order: orderOut(adminOrder(params.id)) };
 });
+route('GET', '/api/admin/backup/db', { auth: 'admin', limit: ['bkdb', 5] }, () => {   // a complete, restorable copy of the database (products, posts, orders, customers, settings)
+  const dir = path.join(DATA, 'tmp'); fs.mkdirSync(dir, { recursive: true }); const f = path.join(dir, 'dl-' + crypto.randomBytes(6).toString('hex') + '.db');
+  try { db.exec(`VACUUM INTO '${f.replace(/'/g, "''")}'`); const data = fs.readFileSync(f), d = new Date(), z = n => String(n).padStart(2, '0'); return { bin: { data, name: `skinsentials22-store-${d.getFullYear()}${z(d.getMonth() + 1)}${z(d.getDate())}-${z(d.getHours())}${z(d.getMinutes())}.db` } }; }
+  finally { try { fs.unlinkSync(f); } catch {} }
+});
 route('PUT', '/api/admin/products', { auth: 'admin', big: true }, ({ body }) => {
   const list = body.products; if (!Array.isArray(list) || list.length > 500) throw new HttpError(400, 'Invalid product list');
   if (+body.rev !== getRev('products_rev')) throw new HttpError(409, 'The catalogue was changed somewhere else (another tab or device). Reload this page, then repeat your change.');
@@ -1274,6 +1279,7 @@ const server = http.createServer(async (req, res) => {
       const out = await r.fn(ctx);
       if (out && out.html) return send(res, 200, out.html, 'text/html; charset=utf-8', cors);
       if (out && out.csv) return send(res, 200, '\ufeff' + out.csv, 'text/csv; charset=utf-8', { ...cors, 'Content-Disposition': `attachment; filename="${out.name || 'export.csv'}"` });
+      if (out && out.bin) return send(res, 200, out.bin.data, 'application/octet-stream', { ...cors, 'Cache-Control': 'no-store', 'Content-Disposition': `attachment; filename="${out.bin.name}"` });
       if (out && out.file) return send(res, 200, out.file.data, out.file.type + '; charset=utf-8', { ...cors, 'Content-Disposition': `attachment; filename="${out.file.name}"` });
       return send(res, 200, JSON.stringify(out), undefined, { ...cors, 'Cache-Control': 'no-store' });
     }

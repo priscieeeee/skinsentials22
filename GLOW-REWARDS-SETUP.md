@@ -54,3 +54,9 @@ Real HTTP against a temporary database (29 checks): points by category with gift
 - The server used to add those four again whenever the product list was empty. It now adds them **only once, on a brand-new store**, so deleting products never brings them back.
 - **If the four still show after you deploy, they are saved in your shop: delete them once in Admin > Products.** (Nothing is deleted for you.)
 - **Automatic SEO for every post:** a product or blog post you save gets its own page and a sitemap entry **instantly**. Within about 2 minutes the server also tells Bing, Yandex and other IndexNow search engines about every new, changed or deleted page. Google picks it up from the sitemap: submit `https://skinsentials22.com.ng/sitemap.xml` once in Google Search Console and it rechecks on its own. This needs `SITE_URL` set to your real address (it is skipped on localhost). Set `INDEXNOW=0` to switch the notifications off.
+
+## Download database backup button
+**Admin > Settings > Backup > Download database backup** saves a complete, restorable copy of the store database (products, posts, orders, payments, customers, Glow points, settings) to your computer. Only a signed-in admin can use it. It contains customer details, so keep the file private.
+- It does **not** include uploaded videos and images (`data/uploads/`); copy that folder separately.
+- **To restore:** stop the server, copy the downloaded file over `data/store.db`, delete `store.db-wal` and `store.db-shm`, put your `uploads/` folder back, start the server.
+- The older **Download full backup** button (a readable export, no passwords or keys) is still there.

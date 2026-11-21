@@ -2851,7 +2851,7 @@ const zoneOf = st => st === 'Lagos' ? 'lagos' : st === INTL ? 'intl' : NG_STATES
     t.insertAdjacentHTML('beforeend', `<div class="${card} p-5 space-y-4"><h2 class="font-semibold text-sm text-brand-navy">Order &amp; payment alerts</h2><div id="al-status" class="flex flex-wrap gap-2 text-[11px]"></div>
       <p class="text-[11px] text-brand-slate">The dashboard always alerts you live while it is open. To be told on your phone, add a Telegram bot, an email key or a webhook in the server <b>.env</b> file (steps in the README), then press the test button.</p><button type="button" onclick="skTestAlert()" class="${btn2}">Send a test alert</button></div>
       <div class="${card} p-5 space-y-3"><h2 class="font-semibold text-sm text-brand-navy">Admin password</h2><div class="grid sm:grid-cols-3 gap-3"><input id="ap-cur" type="password" class="${inp}" placeholder="Current password" autocomplete="current-password"><input id="ap-new" type="password" class="${inp}" placeholder="New password (10+ characters)" autocomplete="new-password"><input id="ap-new2" type="password" class="${inp}" placeholder="Repeat new password" autocomplete="new-password"></div><button type="button" onclick="skAdminPw()" class="${btn1}">Change password</button><p class="text-[11px] text-brand-slate">Changing it signs out any other device that is logged in to the admin.</p></div>
-      <div class="${card} p-5 space-y-2"><h2 class="font-semibold text-sm text-brand-navy">Backup</h2><p class="text-[11px] text-brand-slate">One file with your products, orders, payments, customers and settings (no passwords or secret keys).</p><button type="button" onclick="skBackup()" class="${btn2}"><i class="fa-solid fa-download mr-1"></i>Download full backup</button></div>`);
+      <div class="${card} p-5 space-y-2"><h2 class="font-semibold text-sm text-brand-navy">Backup</h2><p class="text-[11px] text-brand-slate">One file with your products, orders, payments, customers and settings (no passwords or secret keys).</p><button type="button" onclick="skBackup()" class="${btn2}"><i class="fa-solid fa-download mr-1"></i>Download full backup</button> <button type="button" onclick="skBackupDb()" class="${btn2}"><i class="fa-solid fa-database mr-1"></i>Download database backup</button><p class="text-[11px] text-brand-slate">The database backup is a complete copy you can restore the whole store from. It also contains customer details and settings, so keep it private and never share it.</p></div>`);
   }
 
   /* ---------- payments ---------- */
@@ -4581,6 +4581,15 @@ function pSettings() {
 const catRow = x => `<div data-row class="grid sm:grid-cols-[1.2fr_70px_2fr_auto] gap-2 items-center"><input data-k="label" class="adm-in" placeholder="Name shown to customers" value="${E(x.label)}" aria-label="Category name"><input data-k="pts" class="adm-in" type="number" min="0" value="${E(x.pts)}" aria-label="Points"><input data-k="kw" class="adm-in" placeholder="words in the product name, comma separated" value="${E(x.kw)}" aria-label="Matching words"><input data-k="key" type="hidden" value="${E(x.key)}"><button type="button" data-rm class="${btn2}" aria-label="Remove category">Remove</button></div>`;
 const tierRow = x => `<div data-row class="grid sm:grid-cols-[1fr_90px_2fr_auto] gap-2 items-center"><input data-k="name" class="adm-in" placeholder="Reward name" value="${E(x.name)}" aria-label="Reward name"><input data-k="pts" class="adm-in" type="number" min="1" value="${E(x.pts)}" aria-label="Points needed"><input data-k="reward" class="adm-in" placeholder="What the customer gets" value="${E(x.reward)}" aria-label="Reward"><input data-k="id" type="hidden" value="${E(x.id)}"><button type="button" data-rm class="${btn2}" aria-label="Remove reward">Remove</button></div>`;
 
+/* ---------- Admin > Settings: download a complete database copy ---------- */
+window.skBackupDb = async () => {
+  try {
+    const r = await realFetch(BASE + '/api/admin/backup/db', { headers: { Authorization: 'Bearer ' + (sessionStorage.getItem(AT) || '') } });
+    if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(r.status === 401 ? 'Your admin session ended. Please sign in again.' : j.error || 'Could not create the backup.'); }
+    const cd = r.headers.get('Content-Disposition') || '', name = (/filename="([^"]+)"/.exec(cd) || [])[1] || 'skinsentials22-store.db', url = URL.createObjectURL(await r.blob()), a = document.createElement('a');
+    a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000); toast('Database backup downloaded. Keep it somewhere safe.');
+  } catch (e) { toast(e.message || 'Could not create the backup.'); }
+};
 /* ---------- home strip, menu link, boot ---------- */
 function promo() {
   const h = $('page-home'); if (!h || $('glow-promo') || !PUB.active) return;
