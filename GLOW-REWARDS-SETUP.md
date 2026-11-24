@@ -60,3 +60,20 @@ Real HTTP against a temporary database (29 checks): points by category with gift
 - It does **not** include uploaded videos and images (`data/uploads/`); copy that folder separately.
 - **To restore:** stop the server, copy the downloaded file over `data/store.db`, delete `store.db-wal` and `store.db-shm`, put your `uploads/` folder back, start the server.
 - The older **Download full backup** button (a readable export, no passwords or keys) is still there.
+
+## Promo Banners (Admin > Promo Banners)
+- Two kinds: a **banner** (large card with optional picture, under the hero on the homepage) and a **strip** (thin bar under the announcement bar on every page). Several strips rotate every 6 seconds.
+- Per banner: headline, message, button text, button destination (any page, a product, or your own link), picture (upload or address), background and text colours, **start and end date** (it starts and stops by itself), optional **countdown**, whether visitors can close it, on/off, duplicate, reorder, delete, and a live preview before you save.
+- A banner that visitors closed stays closed until you edit it. Saved on the server only (settings); products and posts are never touched.
+
+## Fixed in this update
+- The **Glow Rewards page did not open** when reached from the menu, the home strip or a link (it was created after navigation). It now opens everywhere.
+- A full sweep of every page, product page, cart, checkout (pay on delivery order placed end to end), account, consultation and admin screens found no other script or server errors, on desktop and phone sizes.
+
+## Backups & Safe Update (Admin > Backups & Update)
+1. **Back up now** saves a complete copy on the server in about a second (**Back up and download** also saves it to your computer). Do both before any change you are unsure about.
+2. **Safe update:** before replacing `server.js` / `public/index.html`, press **Back up and get ready to update**. Replace only those two files (never the `data` folder), restart, then press **Check after update**. It confirms the server restarted and compares your products, posts and orders with the moment you got ready. If anything is missing it says so and offers one button to put your products and posts back.
+3. **Your backups** lists every copy (automatic every 6 hours, manual, before-update, before-restore) with product, post and order counts, a Download button and **Restore products & posts**.
+- Restoring replaces only products, brands, blog posts, hero slides, announcement and promo banners. Orders, customers, payments and Glow points are never touched. A fresh backup is taken first, so a restore can be undone.
+- Manual backups are kept (newest 40) and are not removed by the automatic cleanup. Uploaded images and videos (`data/uploads/`) are files and are not in the database backup: copy that folder separately.
+- Restoring everything (orders and customers too) is done by hand: stop the server, copy the backup over `data/store.db`, delete `store.db-wal` and `store.db-shm`, start again.

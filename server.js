@@ -1136,6 +1136,83 @@ CREATE UNIQUE INDEX IF NOT EXISTS glow_refs_friend ON glow_refs(friend_key) WHER
   return { price, attach, sync, estimate, note };
 })();
 
+/* ---------- Backups and Safe Update (Admin > Settings > Backups and safe update) ----------
+   Manual backups are kept next to the automatic ones in data/backups and are never rotated out by them (newest 40 kept).
+   "Restore products and posts" copies ONLY products, brands, blog/hero/announcement content and promo banners from a backup into
+   the live store (after taking a fresh backup first). Orders, customers, payments and Glow points are never touched. */
+const BK = (() => {
+  const dir = path.join(DATA, 'backups'), started = Date.now(), NAME = /^store-\d{8}-\d{4,6}(-(manual|update|restore))?\.db$/;
+  fs.mkdirSync(dir, { recursive: true });
+  const z = n => String(n).padStart(2, '0'), q = s => String(s).replace(/'/g, "''");
+  const kindOf = n => (/-(manual|update|restore)\.db$/.exec(n) || [])[1] || 'auto';
+  const pathOf = name => { if (!NAME.test(String(name || ''))) throw new HttpError(404, 'Backup not found'); const f = path.join(dir, name); if (!fs.existsSync(f)) throw new HttpError(404, 'Backup not found'); return f; };
+  const count = (d, sql) => { try { return d.prepare(sql).get().n; } catch { return 0; } };
+  const postsOf = d => { try { const c = JSON.parse((d.prepare("SELECT v FROM settings WHERE k='content'").get() || {}).v || 'null'); return c && Array.isArray(c.posts) ? c.posts.length : 0; } catch { return 0; } };
+  const nums = d => ({ products: count(d, 'SELECT COUNT(*) n FROM products'), posts: postsOf(d), orders: count(d, 'SELECT COUNT(*) n FROM orders'), customers: count(d, 'SELECT COUNT(*) n FROM users') });
+  const cache = new Map();
+  const info = name => {
+    const f = path.join(dir, name), st = fs.statSync(f), key = name + st.mtimeMs + st.size; if (cache.has(key)) return cache.get(key);
+    let n = { products: 0, posts: 0, orders: 0, customers: 0 }; try { const d = new DatabaseSync(f); try { n = nums(d); } finally { d.close(); } } catch {}
+    const r = { name, kind: kindOf(name), at: st.mtimeMs, size: st.size, ...n }; cache.set(key, r); return r;
+  };
+  function make(kind) {
+    const d = new Date(), name = `store-${d.getUTCFullYear()}${z(d.getUTCMonth() + 1)}${z(d.getUTCDate())}-${z(d.getUTCHours())}${z(d.getUTCMinutes())}${z(d.getUTCSeconds())}-${kind}.db`, f = path.join(dir, name);
+    if (fs.existsSync(f)) return name; db.exec(`VACUUM INTO '${q(f)}'`);
+    const man = fs.readdirSync(dir).filter(x => NAME.test(x) && kindOf(x) !== 'auto').sort(); man.slice(0, Math.max(0, man.length - 40)).forEach(x => { try { fs.unlinkSync(path.join(dir, x)); } catch {} });
+    return name;
+  }
+  const list = () => fs.readdirSync(dir).filter(x => NAME.test(x)).map(x => { try { return info(x); } catch { return null; } }).filter(Boolean).sort((a, b) => b.at - a.at).slice(0, 60);
+  const now2 = () => nums(db);
+  route('GET', '/api/admin/backups', { auth: 'admin' }, () => ({ backups: list(), current: now2(), started, prepared: (() => { try { return JSON.parse((db.prepare("SELECT v FROM settings WHERE k='update_prepared'").get() || {}).v || 'null'); } catch { return null; } })() }));
+  route('POST', '/api/admin/backups', { auth: 'admin', limit: ['bkmake', 10] }, ({ body }) => { const kind = body.kind === 'update' ? 'update' : 'manual', name = make(kind), i = info(name);
+    if (kind === 'update') db.prepare("INSERT INTO settings VALUES('update_prepared',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v").run(JSON.stringify({ name, at: Date.now(), products: i.products, posts: i.posts, orders: i.orders, customers: i.customers }));
+    return { backup: i, backups: list(), current: now2(), started }; });
+  route('GET', '/api/admin/backups/:name/download', { auth: 'admin', limit: ['bkdl', 10] }, ({ params }) => ({ bin: { data: fs.readFileSync(pathOf(params.name)), name: params.name } }));
+  route('POST', '/api/admin/backups/:name/restore-content', { auth: 'admin', limit: ['bkrest', 4] }, ({ params, body }) => {
+    const f = pathOf(params.name); if (body.confirm !== true) throw new HttpError(400, 'Please confirm the restore.');
+    const safety = make('restore');   // a fresh copy of what is live right now, so this restore can itself be undone
+    db.exec(`ATTACH DATABASE '${q(f)}' AS bk`);
+    try {
+      const has = t => !!db.prepare("SELECT 1 FROM bk.sqlite_master WHERE type='table' AND name=?").get(t); if (!has('products')) throw new HttpError(400, 'That backup has no products to restore.');
+      tx(() => {
+        db.exec('DELETE FROM products'); db.exec('INSERT INTO products SELECT * FROM bk.products');
+        if (has('brands')) { db.exec('DELETE FROM brands'); db.exec('INSERT INTO brands SELECT * FROM bk.brands'); }
+        if (has('settings')) db.exec("INSERT INTO settings(k,v) SELECT k,v FROM bk.settings WHERE k IN ('content','promos') ON CONFLICT(k) DO UPDATE SET v=excluded.v");
+        bumpRev('products_rev'); bumpRev('content_rev');
+      });
+    } finally { try { db.exec('DETACH DATABASE bk'); } catch {} }
+    return { ok: true, safety, current: now2(), backups: list() };
+  });
+  return { make, started };
+})();
+
+/* ---------- Promo banners (Admin > Promo Banners) ----------
+   Banners live in the settings table under 'promos'. They never touch products or posts. */
+const PROMO = (() => {
+  const KW = new Set(['shop', 'glow', 'quiz', 'videos', 'brands', 'blog', 'giftcards', 'consult', 'ingredients', 'referral']);
+  const hex = (v, d) => /^#[0-9a-f]{6}$/i.test(String(v || '')) ? String(v).toLowerCase() : d;
+  const ts = v => { const n = Math.floor(+v); return Number.isFinite(n) && n > 1e11 && n < 4.2e12 ? n : null; };
+  const link = v => { v = String(v || '').replace(/[\u0000-\u001f\s]+/g, ' ').trim().slice(0, 300); return (/^https?:\/\/[^\s]+$/i.test(v) || /^\/[^\s/][^\s]*$/.test(v) || /^#[A-Za-z0-9_-]{1,60}$/.test(v) || /^p:[A-Za-z0-9_-]{1,64}$/.test(v) || KW.has(v)) ? v : ''; };
+  const img = v => { v = String(v || '').trim().slice(0, 300); return (/^https:\/\/[^\s]+$/i.test(v) || /^\/uploads\/[A-Za-z0-9_.-]+$/.test(v)) ? v : ''; };
+  const clean = list => (Array.isArray(list) ? list : []).slice(0, 20).map((b, i) => ({
+    id: str(b && b.id, 30).replace(/[^A-Za-z0-9_-]/g, '') || 'b' + Date.now().toString(36) + i,
+    on: !b || b.on !== false, place: b && b.place === 'strip' ? 'strip' : 'banner',
+    title: str(b && b.title, 120), text: str(b && b.text, 300), btn: str(b && b.btn, 40), link: link(b && b.link), image: img(b && b.image),
+    bg: hex(b && b.bg, '#0b2a4a'), fg: hex(b && b.fg, '#ffffff'), start: ts(b && b.start), end: ts(b && b.end),
+    countdown: !!(b && b.countdown), dismiss: !b || b.dismiss !== false, updated: now()
+  })).filter(b => b.title || b.text);
+  const all = () => { try { const a = JSON.parse((db.prepare("SELECT v FROM settings WHERE k='promos'").get() || {}).v || '[]'); return Array.isArray(a) ? a : []; } catch { return []; } };
+  const live = b => b.on && (!b.start || b.start <= now()) && (!b.end || b.end > now());
+  route('GET', '/api/promos', { limit: ['promos', 120] }, () => ({ promos: all().filter(live), now: now() }));
+  route('GET', '/api/admin/promos', { auth: 'admin' }, () => ({ promos: all(), now: now() }));
+  route('PUT', '/api/admin/promos', { auth: 'admin' }, ({ body }) => {
+    if (!Array.isArray(body.promos) || body.promos.length > 20) throw new HttpError(400, 'Invalid banner list');
+    const prev = new Map(all().map(b => [b.id, b])), out = clean(body.promos).map(b => { const p = prev.get(b.id); return p && JSON.stringify({ ...p, updated: 0 }) === JSON.stringify({ ...b, updated: 0 }) ? p : b; });   // untouched banners keep their dismissed state on visitors' devices
+    db.prepare("INSERT INTO settings VALUES('promos',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v").run(JSON.stringify(out)); return { promos: out, now: now() };
+  });
+  return { all };
+})();
+
 /* ---------- server ---------- */
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.webp': 'image/webp', '.gif': 'image/gif', '.txt': 'text/plain', '.mp4': 'video/mp4', '.m4v': 'video/mp4', '.mov': 'video/quicktime', '.webm': 'video/webm', '.ogv': 'video/ogg', '.jpeg': 'image/jpeg' };
 function readBody(req, max) {

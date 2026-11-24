@@ -4600,17 +4600,224 @@ function menu() {
   const f = document.querySelector('footer'); if (f && PUB.active && !$('ft-glow')) { const l = f.querySelector('ul'); if (l) l.insertAdjacentHTML('beforeend', '<li id="ft-glow"><button type="button" class="hover:text-white" onclick="navigateTo(\'glow\')">Glow Rewards</button></li>'); }
 }
 function wireAll() {
-  const nav = window.navigateTo; if (typeof nav === 'function') window.navigateTo = function (p) { const r = nav.apply(this, arguments); if (p === 'glow') renderPage(); if (p === 'admin') setTimeout(adminInit, 0); return r; };
+  const nav = window.navigateTo; if (typeof nav === 'function') window.navigateTo = function (p) { if (p === 'glow') ensurePage(); const r = nav.apply(this, arguments); if (p === 'glow') renderPage(); if (p === 'admin') setTimeout(adminInit, 0); return r; };
   const co = window.checkout; if (typeof co === 'function') window.checkout = function () { const r = co.apply(this, arguments); try { coOpen(); } catch (e) { console.error(e); } return r; };
   const at = window.adminTab; if (typeof at === 'function') window.adminTab = function (t) { adminInit(); const r = at.apply(this, arguments); if (t === 'glow') adminLoad(); return r; };
   const ab = $('acct-body'); if (ab) new MutationObserver(tabBtn).observe(ab, { childList: true });
   const s2 = $('co-step2'); if (s2) new MutationObserver(() => { if (!CO.note || s2.querySelector('[data-glow-note]') || s2.classList.contains('hidden') || !s2.children.length) return; s2.insertAdjacentHTML('beforeend', `<p data-glow-note class="text-xs text-brand-navy bg-brand-mist rounded-lg p-3">\u2728 ${tok() ? `You will earn about <b>${P(CO.note)} Glow Points</b> once your order is delivered.` : `This order can earn <b>${P(CO.note)} Glow Points</b>. Create a free account, then add this order under Account \u2192 Glow Points with your order reference${CO.ref ? ' <b>' + E(CO.ref) + '</b>' : ''}.`}</p>`); }).observe(s2, { childList: true });
+  ensurePage();
   const had = capture();
   api('/glow/public').then(c => { PUB = { ...c, loaded: 1 }; promo(); menu(); if (had && c.active) toast('Your Glow Friend code is saved. It will be applied at checkout.'); }).catch(() => {});
   if (location.hash === '#glow') navigateTo('glow');
 }
 window.addEventListener('hashchange', () => { if (location.hash === '#glow') navigateTo('glow'); });
 if (document.readyState === 'complete') wireAll(); else window.addEventListener('load', wireAll);
+})();
+</script>
+
+<script id="promo-layer-js">
+/* SKINSENTIALS22 promo banners: shown to visitors, controlled in Admin > Promo Banners.
+   Banners are saved on the server (settings > promos) and never touch products or posts. Delete this block to remove the feature. */
+(function () {
+'use strict';
+const BASE = window.SK_API_BASE || '', AT = 'sk22adm', DK = 'sk22promo';
+const $ = id => document.getElementById(id), E = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const toast = m => { try { showToast(m); } catch (e) { alert(m); } };
+const realFetch = window.fetch.bind(window);
+async function api(path, o) {
+  o = o || {}; const h = {}; if (o.body) h['Content-Type'] = 'application/json'; if (o.admin) h.Authorization = 'Bearer ' + (sessionStorage.getItem(AT) || '');
+  let r; try { r = await realFetch(BASE + '/api' + path, { method: o.method || 'GET', headers: h, body: o.body ? JSON.stringify(o.body) : undefined }); } catch (e) { throw new Error('Cannot reach the server. Check your connection.'); }
+  const j = await r.json().catch(() => ({})); if (!r.ok) { const e = new Error(r.status === 401 && o.admin ? 'Your admin session ended. Please sign in again.' : (j.error || 'Something went wrong')); e.status = r.status; throw e; } return j;
+}
+const PAGE = { shop: 'catalog', glow: 'glow', quiz: 'quiz', videos: 'video-hub', brands: 'brands', blog: 'blog', giftcards: 'giftcard', consult: 'consult', ingredients: 'ingredients', referral: 'referral' };
+const PRETTY = { shop: '/shop', glow: '/glow-rewards', quiz: '/skin-quiz', videos: '/videos', brands: '/brands', blog: '/journal', giftcards: '/gift-cards', consult: '/skin-consultation', ingredients: '/ingredients', referral: '/#referral' };
+const hrefOf = l => PRETTY[l] || (/^p:/.test(l) ? '/p/' + encodeURIComponent(l.slice(2)) : l || '');
+function go(l) {
+  if (PAGE[l]) { navigateTo(PAGE[l]); window.scrollTo(0, 0); return; }
+  if (/^p:/.test(l)) { openPdp(l.slice(2)); window.scrollTo(0, 0); return; }
+  if (l[0] === '#') { location.hash = l; return; } location.href = l;
+}
+const dis = () => { try { return JSON.parse(localStorage.getItem(DK) || '{}'); } catch (e) { return {}; } };
+const hidden = b => { const d = dis()[b.id]; return b.dismiss && d && d >= b.updated; };
+const cta = (b, cls) => b.link ? `<a href="${E(hrefOf(b.link))}" data-pgo="${E(b.link)}" ${/^https?:/i.test(b.link) ? 'target="_blank" rel="noopener"' : ''} class="${cls}" style="background:${b.fg};color:${b.bg}">${E(b.btn || 'Shop now')}</a>` : '';
+const timer = b => b.countdown && b.end ? `<span data-end="${b.end}" class="font-semibold tabular-nums"></span>` : '';
+const X = b => b.dismiss ? `<button type="button" data-pclose="${E(b.id)}" class="absolute top-2 right-2 w-8 h-8 rounded-full text-lg leading-none opacity-80 hover:opacity-100" style="color:${b.fg}" aria-label="Dismiss this promotion">&times;</button>` : '';
+function bannerCard(b) {
+  return `<section class="relative rounded-2xl overflow-hidden shadow-sm" style="background:${b.bg};color:${b.fg}" aria-label="${E(b.title || 'Promotion')}"><div class="grid ${b.image ? 'md:grid-cols-2' : ''} items-center">
+    <div class="p-6 sm:p-10 space-y-3 ${b.image ? '' : 'text-center'}">${b.title ? `<h2 class="font-serif text-2xl sm:text-4xl font-bold leading-tight">${E(b.title)}</h2>` : ''}${b.text ? `<p class="text-sm sm:text-base opacity-90">${E(b.text)}</p>` : ''}${b.countdown && b.end ? `<p class="text-sm">Ends in ${timer(b)}</p>` : ''}${cta(b, 'inline-block mt-2 px-6 py-3 rounded-full text-xs sm:text-sm font-bold tracking-wide hover:opacity-90')}</div>
+    ${b.image ? `<img src="${E(b.image)}" alt="" loading="lazy" class="w-full h-48 md:h-full object-cover" onerror="this.style.display='none'">` : ''}</div>${X(b)}</section>`;
+}
+function stripBar(b) {
+  return `<div class="relative text-xs sm:text-sm py-2.5 pl-4 pr-10 text-center" style="background:${b.bg};color:${b.fg}" role="region" aria-label="Promotion">${b.title ? `<b>${E(b.title)}</b> ` : ''}${E(b.text)} ${timer(b)} ${b.link ? `<a href="${E(hrefOf(b.link))}" data-pgo="${E(b.link)}" ${/^https?:/i.test(b.link) ? 'target="_blank" rel="noopener"' : ''} class="underline font-semibold ml-1">${E(b.btn || 'Shop now')}</a>` : ''}${X(b)}</div>`;
+}
+let LIVE = [], SIG = '', rot = 0, tick = 0, strips = [], si = 0;
+function tickAll() {
+  document.querySelectorAll('[data-end]').forEach(el => {
+    const left = +el.dataset.end - Date.now(); if (left <= 0) { el.textContent = 'ended'; if (!tickAll.reload) { tickAll.reload = 1; setTimeout(() => { tickAll.reload = 0; load(); }, 1500); } return; }
+    const d = Math.floor(left / 864e5), h = Math.floor(left % 864e5 / 36e5), m = Math.floor(left % 36e5 / 6e4), s = Math.floor(left % 6e4 / 1e3), z = n => String(n).padStart(2, '0');
+    el.textContent = (d ? d + 'd ' : '') + z(h) + ':' + z(m) + ':' + z(s);
+  });
+}
+function wire(root) {
+  root.querySelectorAll('[data-pgo]').forEach(a => { const l = a.dataset.pgo; if (PAGE[l] || /^p:/.test(l) || l[0] === '#') a.onclick = e => { e.preventDefault(); go(l); }; });
+  root.querySelectorAll('[data-pclose]').forEach(b => b.onclick = () => { const d = dis(); d[b.dataset.pclose] = Date.now(); try { localStorage.setItem(DK, JSON.stringify(d)); } catch (e) {} render(true); });
+}
+function render(force) {
+  const show = LIVE.filter(b => !hidden(b)), sig = JSON.stringify(show);
+  if (!force && sig === SIG) return; SIG = sig;
+  clearInterval(rot); rot = 0;
+  let bar = $('promo-strip'); strips = show.filter(b => b.place === 'strip'); si = 0;
+  if (!strips.length) { if (bar) bar.remove(); } else {
+    if (!bar) { bar = document.createElement('div'); bar.id = 'promo-strip'; const a = $('announcement-bar'); if (a) a.insertAdjacentElement('afterend', bar); else document.body.insertAdjacentElement('afterbegin', bar); }
+    const paint = () => { bar.innerHTML = stripBar(strips[si % strips.length]); wire(bar); tickAll(); }; paint();
+    if (strips.length > 1) rot = setInterval(() => { si++; paint(); }, 6000);
+  }
+  const banners = show.filter(b => b.place === 'banner'); let box = $('promo-banners');
+  if (!banners.length) { if (box) box.remove(); } else {
+    if (!box) {
+      const hero = $('hero-copy') && $('hero-copy').closest('div.relative'), home = $('page-home'); if (!hero && !home) return;
+      box = document.createElement('div'); box.id = 'promo-banners'; box.className = 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 space-y-4';
+      if (hero) hero.insertAdjacentElement('afterend', box); else home.insertAdjacentElement('afterbegin', box);
+    }
+    box.innerHTML = banners.map(bannerCard).join(''); wire(box);
+  }
+  clearInterval(tick); tick = setInterval(tickAll, 1000); tickAll();
+}
+async function load() { try { const r = await api('/promos'); LIVE = r.promos || []; render(); } catch (e) {} }
+
+/* ---------- Admin > Promo Banners ---------- */
+let LIST = [], EDIT = null;
+const A = (p, o) => api(p, { ...(o || {}), admin: true });
+const fail = e => toast((e && e.message) || 'Something went wrong.');
+const card = 'bg-white border border-brand-stone rounded-xl', btn = 'bg-brand-navy hover:bg-brand-blue text-white text-xs font-semibold px-5 py-2.5 rounded-full disabled:opacity-40', btn2 = 'border border-brand-stone text-xs font-semibold px-3 py-2 rounded-full hover:bg-brand-mist';
+const loc = ms => { if (!ms) return ''; const d = new Date(ms - new Date(ms).getTimezoneOffset() * 6e4); return d.toISOString().slice(0, 16); };
+const status = b => { const n = Date.now(); return !b.on ? ['Off', 'bg-gray-100 text-gray-700'] : b.start && b.start > n ? ['Scheduled', 'bg-blue-50 text-blue-800'] : b.end && b.end <= n ? ['Ended', 'bg-gray-100 text-gray-700'] : ['Live', 'bg-green-50 text-green-800']; };
+function adminInit() {
+  if (!$('tab-orders') || $('tab-promo')) return; const ob = document.querySelector('[data-tab=orders]'); if (!ob) return;
+  ob.insertAdjacentHTML('afterend', '<button data-tab="promo" onclick="adminTab(\'promo\')" class="adm-tab-btn text-left text-sm px-3 py-2 rounded-lg text-gray-300 hover:bg-white/10"><i class="fa-solid fa-bullhorn w-5"></i>Promo Banners</button>');
+  $('tab-orders').parentElement.insertAdjacentHTML('beforeend', '<div id="tab-promo" class="admin-tab hidden"><h1 class="font-serif text-3xl font-bold text-brand-navy mb-1">Promo Banners</h1><p class="text-xs text-brand-slate mb-4">Show offers to every visitor. A <b>strip</b> is a thin bar under the announcement bar on every page. A <b>banner</b> is a large card under the hero on the homepage. Use the dates to schedule a sale and it starts and stops by itself.</p><div id="promo-body"><p class="text-sm text-brand-slate">Loading\u2026</p></div></div>');
+}
+async function adminLoad() {
+  adminInit(); const b = $('promo-body'); if (!b) return;
+  try { const r = await A('/admin/promos'); LIST = r.promos; } catch (e) { b.innerHTML = `<p class="text-sm text-red-600">${E(e.message)}</p>`; return; }
+  const row = (p, i) => { const s = status(p); return `<li class="${card} p-3 flex flex-wrap items-center gap-3"><div class="flex-1 min-w-[200px] text-xs"><b class="text-brand-navy">${E(p.title || p.text)}</b> <span class="px-2 py-0.5 rounded-full ${s[1]}">${s[0]}</span> <span class="text-brand-slate">${p.place === 'strip' ? 'Strip' : 'Banner'}${p.start ? ' \u00B7 from ' + new Date(p.start).toLocaleString('en-NG') : ''}${p.end ? ' \u00B7 until ' + new Date(p.end).toLocaleString('en-NG') : ''}</span></div>
+    <div class="flex flex-wrap gap-1"><button type="button" class="${btn2}" data-pe="${i}">Edit</button><button type="button" class="${btn2}" data-pt="${i}">${p.on ? 'Turn off' : 'Turn on'}</button><button type="button" class="${btn2}" data-pd="${i}">Duplicate</button><button type="button" class="${btn2}" data-pu="${i}" ${i === 0 ? 'disabled' : ''} aria-label="Move up">\u2191</button><button type="button" class="${btn2}" data-pn="${i}" ${i === LIST.length - 1 ? 'disabled' : ''} aria-label="Move down">\u2193</button><button type="button" class="${btn2} text-red-600" data-px="${i}">Delete</button></div></li>`; };
+  b.innerHTML = `<div class="mb-3"><button type="button" class="${btn}" id="pb-add" ${LIST.length >= 20 ? 'disabled' : ''}>Add a banner</button></div><div id="pb-form"></div><ul class="space-y-2">${LIST.map(row).join('') || '<li class="text-sm text-brand-slate">No banners yet. Add your first one.</li>'}</ul>`;
+  $('pb-add').onclick = () => { EDIT = { id: '', on: true, place: 'banner', title: '', text: '', btn: 'Shop now', link: 'shop', image: '', bg: '#0b2a4a', fg: '#ffffff', start: null, end: null, countdown: false, dismiss: true }; form(); };
+  const sv = async (l, msg) => { try { await A('/admin/promos', { method: 'PUT', body: { promos: l } }); toast(msg); await adminLoad(); load(); } catch (e) { fail(e); } };
+  b.querySelectorAll('[data-pe]').forEach(x => x.onclick = () => { EDIT = { ...LIST[+x.dataset.pe] }; form(); });
+  b.querySelectorAll('[data-pt]').forEach(x => x.onclick = () => { const l = LIST.map(p => ({ ...p })); l[+x.dataset.pt].on = !l[+x.dataset.pt].on; sv(l, l[+x.dataset.pt].on ? 'Banner is on' : 'Banner is off'); });
+  b.querySelectorAll('[data-pd]').forEach(x => x.onclick = () => { const l = LIST.map(p => ({ ...p })), c = { ...l[+x.dataset.pd], id: '', on: false, title: (l[+x.dataset.pd].title || 'Banner') + ' (copy)' }; l.splice(+x.dataset.pd + 1, 0, c); sv(l, 'Copied. The copy is off until you turn it on.'); });
+  b.querySelectorAll('[data-pu],[data-pn]').forEach(x => x.onclick = () => { const i = +(x.dataset.pu || x.dataset.pn), j = x.dataset.pu ? i - 1 : i + 1, l = LIST.map(p => ({ ...p })); [l[i], l[j]] = [l[j], l[i]]; sv(l, 'Order saved'); });
+  b.querySelectorAll('[data-px]').forEach(x => x.onclick = () => { const p = LIST[+x.dataset.px]; if (!confirm(`Delete "${p.title || p.text}"?`)) return; sv(LIST.filter((_, i) => i !== +x.dataset.px), 'Banner deleted'); });
+}
+function form() {
+  const e = EDIT, f = $('pb-form'); const field = (id, label, inner, hint) => `<div><label class="block text-[11px] font-semibold text-brand-slate mb-1" for="${id}">${label}</label>${inner}${hint ? `<small class="text-[11px] text-brand-slate">${hint}</small>` : ''}</div>`;
+  const dests = [['', 'No button link'], ['shop', 'Shop'], ['glow', 'Glow Rewards'], ['quiz', 'Skin quiz'], ['videos', 'Video guides'], ['brands', 'Brands'], ['blog', 'Journal'], ['giftcards', 'Gift cards'], ['consult', 'Consultation'], ['ingredients', 'Ingredients']];
+  const prods = (typeof PRODUCTS !== 'undefined' ? PRODUCTS : []).map(p => ['p:' + p.id, 'Product: ' + p.name]);
+  f.innerHTML = `<div class="${card} p-4 mb-4 space-y-3"><h2 class="font-semibold text-sm text-brand-navy">${e.id ? 'Edit banner' : 'New banner'}</h2>
+  <div class="grid sm:grid-cols-2 gap-3">
+    ${field('pb-title', 'Headline', '<input id="pb-title" class="adm-in" maxlength="120" value="' + E(e.title) + '" placeholder="e.g. Black Friday: 20% off serums">')}
+    ${field('pb-place', 'Where it shows', '<select id="pb-place" class="adm-in"><option value="banner"' + (e.place === 'banner' ? ' selected' : '') + '>Banner: large card on the homepage</option><option value="strip"' + (e.place === 'strip' ? ' selected' : '') + '>Strip: thin bar on every page</option></select>')}
+    <div class="sm:col-span-2">${field('pb-text', 'Message', '<textarea id="pb-text" class="adm-in" rows="2" maxlength="300" placeholder="A short line about the offer">' + E(e.text) + '</textarea>')}</div>
+    ${field('pb-btn', 'Button text', '<input id="pb-btn" class="adm-in" maxlength="40" value="' + E(e.btn) + '">')}
+    ${field('pb-dest', 'Button goes to', '<select id="pb-dest" class="adm-in">' + dests.map(d => `<option value="${E(d[0])}" ${e.link === d[0] ? 'selected' : ''}>${E(d[1])}</option>`).join('') + (prods.length ? '<optgroup label="A product">' + prods.map(d => `<option value="${E(d[0])}" ${e.link === d[0] ? 'selected' : ''}>${E(d[1])}</option>`).join('') + '</optgroup>' : '') + '<option value="__custom">Other link (type below)</option></select>')}
+    <div class="sm:col-span-2">${field('pb-link', 'Link (filled in for you, or paste your own)', '<input id="pb-link" class="adm-in" maxlength="300" value="' + E(e.link) + '" placeholder="https://\u2026 or /shop">', 'Leave empty for a banner with no button.')}</div>
+    <div class="sm:col-span-2">${field('pb-image', 'Picture (banner only)', '<div class="flex gap-2"><input id="pb-image" class="adm-in" maxlength="300" value="' + E(e.image) + '" placeholder="Paste an image address or upload"><label class="' + btn2 + ' cursor-pointer whitespace-nowrap">Upload<input id="pb-file" type="file" accept="image/*" class="sr-only"></label></div>', 'Optional. Wide pictures work best.')}</div>
+    ${field('pb-bg', 'Background colour', '<input id="pb-bg" type="color" class="adm-in h-10" value="' + E(e.bg) + '">')}${field('pb-fg', 'Text colour', '<input id="pb-fg" type="color" class="adm-in h-10" value="' + E(e.fg) + '">')}
+    ${field('pb-start', 'Starts (optional)', '<input id="pb-start" type="datetime-local" class="adm-in" value="' + loc(e.start) + '">', 'Empty = starts as soon as you save.')}${field('pb-end', 'Ends (optional)', '<input id="pb-end" type="datetime-local" class="adm-in" value="' + loc(e.end) + '">', 'Empty = stays until you turn it off.')}
+  </div>
+  <div class="flex flex-wrap gap-4 text-sm"><label class="flex items-center gap-2"><input type="checkbox" id="pb-on" ${e.on ? 'checked' : ''}> Turn on</label><label class="flex items-center gap-2"><input type="checkbox" id="pb-cd" ${e.countdown ? 'checked' : ''}> Show countdown to the end date</label><label class="flex items-center gap-2"><input type="checkbox" id="pb-dm" ${e.dismiss ? 'checked' : ''}> Visitors can close it</label></div>
+  <div><p class="text-[11px] font-semibold text-brand-slate mb-1">Preview</p><div id="pb-prev" class="rounded-xl overflow-hidden border border-brand-stone"></div></div>
+  <p id="pb-err" role="alert" class="text-xs text-red-600 min-h-[1rem]"></p><div class="flex gap-2"><button type="button" class="${btn}" id="pb-save">Save banner</button><button type="button" class="${btn2}" id="pb-cancel">Cancel</button></div></div>`;
+  const read = () => ({ ...e, title: $('pb-title').value.trim(), text: $('pb-text').value.trim(), place: $('pb-place').value, btn: $('pb-btn').value.trim(), link: $('pb-link').value.trim(), image: $('pb-image').value.trim(), bg: $('pb-bg').value, fg: $('pb-fg').value, start: $('pb-start').value ? new Date($('pb-start').value).getTime() : null, end: $('pb-end').value ? new Date($('pb-end').value).getTime() : null, on: $('pb-on').checked, countdown: $('pb-cd').checked, dismiss: $('pb-dm').checked });
+  const prev = () => { const b = read(), box = $('pb-prev'); if (!box) return; box.innerHTML = b.title || b.text ? (b.place === 'strip' ? stripBar({ ...b, dismiss: false }) : bannerCard({ ...b, dismiss: false })) : '<p class="p-4 text-xs text-brand-slate">Type a headline or message to see it here.</p>'; box.querySelectorAll('a').forEach(a => a.onclick = ev => ev.preventDefault()); tickAll(); };
+  f.querySelectorAll('input,select,textarea').forEach(x => { x.addEventListener('input', prev); x.addEventListener('change', prev); }); prev();
+  $('pb-dest').onchange = () => { if ($('pb-dest').value !== '__custom') $('pb-link').value = $('pb-dest').value; prev(); };
+  $('pb-file').onchange = async ev => { const file = ev.target.files[0]; if (!file) return; $('pb-err').textContent = 'Uploading\u2026'; try { const r = await realFetch(BASE + '/api/admin/upload?name=' + encodeURIComponent(file.name), { method: 'POST', headers: { Authorization: 'Bearer ' + (sessionStorage.getItem(AT) || '') }, body: file }), j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Upload failed'); $('pb-image').value = j.url; $('pb-err').textContent = ''; prev(); } catch (er) { $('pb-err').textContent = er.message; } };
+  $('pb-cancel').onclick = () => { EDIT = null; f.innerHTML = ''; };
+  $('pb-save').onclick = async () => {
+    const b = read(); if (!b.title && !b.text) { $('pb-err').textContent = 'Add a headline or a message.'; return; }
+    if (b.start && b.end && b.end <= b.start) { $('pb-err').textContent = 'The end must be after the start.'; return; }
+    if (b.countdown && !b.end) { $('pb-err').textContent = 'The countdown needs an end date.'; return; }
+    if (b.link && !/^(https?:\/\/\S+|\/\S+|#\S+|p:\S+|shop|glow|quiz|videos|brands|blog|giftcards|consult|ingredients|referral)$/.test(b.link)) { $('pb-err').textContent = 'That link is not valid. Use a full web address (https://\u2026), a page choice above, or a path like /shop.'; return; }
+    const l = LIST.map(p => ({ ...p })), i = b.id ? l.findIndex(p => p.id === b.id) : -1; if (i >= 0) l[i] = b; else l.unshift(b);
+    try { await A('/admin/promos', { method: 'PUT', body: { promos: l } }); toast('Banner saved'); EDIT = null; await adminLoad(); load(); } catch (er) { $('pb-err').textContent = er.message; fail(er); }
+  };
+  f.scrollIntoView({ block: 'nearest' });
+}
+function boot() {
+  const nav = window.navigateTo; if (typeof nav === 'function') window.navigateTo = function (p) { const r = nav.apply(this, arguments); if (p === 'admin') setTimeout(adminInit, 0); return r; };
+  const at = window.adminTab; if (typeof at === 'function') window.adminTab = function (t) { adminInit(); const r = at.apply(this, arguments); if (t === 'promo') adminLoad(); return r; };
+  load(); setInterval(load, 300000);
+}
+if (document.readyState === 'complete') boot(); else window.addEventListener('load', boot);
+})();
+</script>
+<style id="promo-css">body.admin-mode #promo-strip,body.admin-mode #promo-banners{display:none}</style>
+
+<script id="backup-layer-js">
+/* SKINSENTIALS22 Admin > Backups and Safe Update. Back up now, download, check an update, and restore products and posts. */
+(function () {
+'use strict';
+const BASE = window.SK_API_BASE || '', AT = 'sk22adm';
+const $ = id => document.getElementById(id), E = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const toast = m => { try { showToast(m); } catch (e) { alert(m); } };
+const realFetch = window.fetch.bind(window);
+async function api(path, o) {
+  o = o || {}; const h = { Authorization: 'Bearer ' + (sessionStorage.getItem(AT) || '') }; if (o.body) h['Content-Type'] = 'application/json';
+  let r; try { r = await realFetch(BASE + '/api' + path, { method: o.method || 'GET', headers: h, body: o.body ? JSON.stringify(o.body) : undefined }); } catch (e) { throw new Error('Cannot reach the server. Check your connection.'); }
+  if (o.blob) { if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || 'Download failed'); } return r.blob(); }
+  const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(r.status === 401 ? 'Your admin session ended. Please sign in again.' : (j.error || 'Something went wrong')); return j;
+}
+const card = 'bg-white border border-brand-stone rounded-xl', btn = 'bg-brand-navy hover:bg-brand-blue text-white text-xs font-semibold px-5 py-2.5 rounded-full disabled:opacity-40', btn2 = 'border border-brand-stone text-xs font-semibold px-3 py-2 rounded-full hover:bg-brand-mist disabled:opacity-40';
+const th = 'p-2 text-left text-[11px] uppercase tracking-wider text-brand-slate', td = 'p-2 border-t border-brand-stone align-top';
+const KIND = { auto: 'Automatic', manual: 'Back up now', update: 'Before update', restore: 'Before a restore' };
+const when = t => new Date(t).toLocaleString('en-NG', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+const mb = n => n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
+let D = null;
+function adminInit() {
+  if (!$('tab-orders') || $('tab-backups')) return; const ob = document.querySelector('[data-tab=orders]'); if (!ob) return;
+  ob.insertAdjacentHTML('afterend', '<button data-tab="backups" onclick="adminTab(\'backups\')" class="adm-tab-btn text-left text-sm px-3 py-2 rounded-lg text-gray-300 hover:bg-white/10"><i class="fa-solid fa-shield-halved w-5"></i>Backups &amp; Update</button>');
+  $('tab-orders').parentElement.insertAdjacentHTML('beforeend', '<div id="tab-backups" class="admin-tab hidden"><h1 class="font-serif text-3xl font-bold text-brand-navy mb-1">Backups &amp; Safe Update</h1><p class="text-xs text-brand-slate mb-4">Keep your products, posts and orders safe. The server also saves an automatic backup every 6 hours.</p><div id="bk-body"><p class="text-sm text-brand-slate">Loading\u2026</p></div></div>');
+}
+async function load(msg) {
+  adminInit(); const b = $('bk-body'); if (!b) return;
+  try { D = await api('/admin/backups'); } catch (e) { b.innerHTML = `<p class="text-sm text-red-600">${E(e.message)}</p>`; return; }
+  const last = D.backups[0], c = D.current, p = D.prepared;
+  let check = '';
+  if (p) {
+    const lost = ['products', 'posts'].filter(k => c[k] < p[k]), restarted = D.started > p.at;
+    check = `<div class="rounded-lg p-3 text-xs ${lost.length ? 'bg-red-50 text-red-800' : restarted ? 'bg-green-50 text-green-800' : 'bg-amber-50 text-amber-800'}" role="status"><b>${lost.length ? 'Something is missing.' : restarted ? 'Update check passed.' : 'Waiting for your update.'}</b> ${restarted ? 'The server has restarted since you got ready.' : 'The server has not restarted since you got ready. Replace the two files, restart, then press Check again.'}<br>Before: ${p.products} products, ${p.posts} posts, ${p.orders} orders. Now: ${c.products} products, ${c.posts} posts, ${c.orders} orders.${lost.length ? `<br><b>You have fewer ${lost.join(' and ')} than before.</b> If that is not what you intended, restore from the backup below.<br><button type="button" class="${btn} mt-2" data-restore="${E(p.name)}">Restore products and posts from the before-update backup</button>` : ''}</div>`;
+  }
+  b.innerHTML = `<p id="bk-msg" role="status" class="text-xs text-brand-navy mb-3 empty:hidden">${E(msg || '')}</p>
+  <div class="grid lg:grid-cols-2 gap-4 mb-5">
+    <div class="${card} p-4 space-y-3"><h2 class="font-semibold text-sm text-brand-navy">1. Back up now</h2><p class="text-xs text-brand-slate">Saves a complete copy on the server in one second. Download it to your computer or Google Drive as well, because a copy on the same server is lost if the server is lost.</p>
+      <p class="text-xs text-brand-slate">Right now: <b>${c.products}</b> products, <b>${c.posts}</b> posts, <b>${c.orders}</b> orders, <b>${c.customers}</b> customers.${last ? ` Last backup: <b>${when(last.at)}</b>.` : ''}</p>
+      <div class="flex flex-wrap gap-2"><button type="button" class="${btn}" id="bk-now">Back up now</button><button type="button" class="${btn2}" id="bk-nowdl">Back up and download</button></div></div>
+    <div class="${card} p-4 space-y-3"><h2 class="font-semibold text-sm text-brand-navy">2. Safe update</h2><p class="text-xs text-brand-slate">Before you replace <code>server.js</code> or <code>public/index.html</code>: press the button, then update only those two files and restart. Never replace or delete the <code>data</code> folder.</p>
+      <div class="flex flex-wrap gap-2"><button type="button" class="${btn}" id="bk-prep">Back up and get ready to update</button>${p ? `<button type="button" class="${btn2}" id="bk-check">Check after update</button>` : ''}</div>${check}</div></div>
+  <h2 class="font-semibold text-sm text-brand-navy mb-2">Your backups</h2>
+  <div class="${card} overflow-x-auto mb-3"><table class="w-full text-xs"><thead><tr><th class="${th}">Saved</th><th class="${th}">Type</th><th class="${th}">Products</th><th class="${th}">Posts</th><th class="${th}">Orders</th><th class="${th}">Size</th><th class="${th}">Actions</th></tr></thead><tbody>${D.backups.map(x => `<tr><td class="${td}">${when(x.at)}</td><td class="${td}">${E(KIND[x.kind] || x.kind)}</td><td class="${td}">${x.products}</td><td class="${td}">${x.posts}</td><td class="${td}">${x.orders}</td><td class="${td}">${mb(x.size)}</td><td class="${td}"><div class="flex flex-wrap gap-1"><button type="button" class="${btn2}" data-dl="${E(x.name)}">Download</button><button type="button" class="${btn2}" data-restore="${E(x.name)}">Restore products &amp; posts</button></div></td></tr>`).join('') || `<tr><td class="${td}" colspan="7">No backups yet. Press Back up now.</td></tr>`}</tbody></table></div>
+  <p class="text-[11px] text-brand-slate">Restoring products and posts replaces only your products, brands, blog posts, hero slides, announcement and promo banners with the ones in the backup. Orders, customers, payments and Glow points are never changed, and a fresh backup is saved first so you can undo it. To restore the whole store (orders and customers too), see the steps in the setup notes: stop the server, copy the backup over <code>data/store.db</code>, delete <code>store.db-wal</code> and <code>store.db-shm</code>, start again.</p>`;
+  const act = (id, fn) => { const el = $(id); if (el) el.onclick = async () => { el.disabled = true; try { await fn(); } catch (e) { toast(e.message); const m = $('bk-msg'); if (m) m.textContent = e.message; } finally { if (el.isConnected) el.disabled = false; } }; };
+  const dl = async name => { const url = URL.createObjectURL(await api('/admin/backups/' + encodeURIComponent(name) + '/download', { blob: true })), a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000); };
+  act('bk-now', async () => { const r = await api('/admin/backups', { method: 'POST', body: { kind: 'manual' } }); toast('Backup saved'); await load(`Backup saved: ${r.backup.products} products, ${r.backup.posts} posts, ${r.backup.orders} orders.`); });
+  act('bk-nowdl', async () => { const r = await api('/admin/backups', { method: 'POST', body: { kind: 'manual' } }); await dl(r.backup.name); toast('Backup saved and downloaded'); await load('Backup saved and downloaded. Keep the file somewhere safe.'); });
+  act('bk-prep', async () => { const r = await api('/admin/backups', { method: 'POST', body: { kind: 'update' } }); toast('Ready to update'); await load(`Ready. Backup saved (${r.backup.products} products, ${r.backup.posts} posts, ${r.backup.orders} orders). Now replace server.js and public/index.html, restart the server, then come back and press Check after update.`); });
+  act('bk-check', async () => { await load('Checked just now.'); });
+  b.querySelectorAll('[data-dl]').forEach(x => x.onclick = async () => { x.disabled = true; try { await dl(x.dataset.dl); } catch (e) { toast(e.message); } finally { x.disabled = false; } });
+  b.querySelectorAll('[data-restore]').forEach(x => x.onclick = async () => {
+    const n = D.backups.find(y => y.name === x.dataset.restore), t = n ? `${n.products} products and ${n.posts} posts from ${when(n.at)}` : 'this backup';
+    if (!confirm(`Restore ${t}?\n\nYour current products, blog posts, hero slides, announcement and promo banners will be replaced. Orders and customers are not changed. A backup of what you have now is saved first.`)) return;
+    x.disabled = true; try { await api('/admin/backups/' + encodeURIComponent(x.dataset.restore) + '/restore-content', { method: 'POST', body: { confirm: true } }); toast('Products and posts restored'); await load('Restored. Reload the shop page to see it. A backup of what you had before is in the list below.'); } catch (e) { x.disabled = false; toast(e.message); }
+  });
+}
+function boot() {
+  const nav = window.navigateTo; if (typeof nav === 'function') window.navigateTo = function (p) { const r = nav.apply(this, arguments); if (p === 'admin') setTimeout(adminInit, 0); return r; };
+  const at = window.adminTab; if (typeof at === 'function') window.adminTab = function (t) { adminInit(); const r = at.apply(this, arguments); if (t === 'backups') load(); return r; };
+}
+if (document.readyState === 'complete') boot(); else window.addEventListener('load', boot);
 })();
 </script>
 
