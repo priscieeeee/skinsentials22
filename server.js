@@ -1213,6 +1213,48 @@ const PROMO = (() => {
   return { all };
 })();
 
+/* ---------- customer reviews: shown on the homepage, set and controlled in Admin > Reviews ----------
+   Saved in the settings table under 'reviews' as { cfg, items }. They never touch products, orders or posts.
+   The public endpoint returns only reviews the admin has left visible, and only when the section is switched on. */
+const REVIEWS = (() => {
+  const DEF = { on: true, kicker: 'Customer love', title: 'What our customers say', subtitle: '', showSummary: true, initial: 6 };
+  const ts = v => { const n = Math.floor(+v); return Number.isFinite(n) && n > 1e11 && n < 4.2e12 ? n : null; };
+  const img = v => { v = String(v || '').trim().slice(0, 300); return (/^https:\/\/[^\s]+$/i.test(v) || /^\/uploads\/[A-Za-z0-9_.-]+$/.test(v)) ? v : ''; };
+  const cfgClean = c => {
+    c = c && typeof c === 'object' ? c : {};
+    return { on: c.on !== false, kicker: c.kicker === undefined ? DEF.kicker : str(c.kicker, 60), title: str(c.title, 100) || DEF.title, subtitle: str(c.subtitle, 200), showSummary: c.showSummary !== false, initial: Math.min(12, Math.max(3, Math.round(+c.initial) || DEF.initial)) };
+  };
+  const itemsClean = list => (Array.isArray(list) ? list : []).slice(0, 100).map((r, i) => {
+    r = r && typeof r === 'object' ? r : {};
+    return {
+      id: str(r.id, 30).replace(/[^A-Za-z0-9_-]/g, '') || 'r' + Date.now().toString(36) + i,
+      on: r.on !== false, name: str(r.name, 60), location: str(r.location, 60),
+      rating: Math.min(5, Math.max(1, Math.round(+r.rating) || 5)), title: str(r.title, 100), text: str(r.text, 600),
+      date: ts(r.date) || now(), verified: !!r.verified, pid: str(r.pid, 64), photo: img(r.photo)
+    };
+  }).filter(r => r.name && r.text);
+  const read = () => {
+    try { const d = JSON.parse((db.prepare("SELECT v FROM settings WHERE k='reviews'").get() || {}).v || 'null'); if (d) return { cfg: cfgClean(d.cfg), items: itemsClean(d.items) }; } catch {}
+    return { cfg: { ...DEF }, items: [] };
+  };
+  const stats = list => {
+    const dist = [0, 0, 0, 0, 0]; let sum = 0; for (const r of list) { dist[r.rating - 1]++; sum += r.rating; }
+    return { count: list.length, avg: list.length ? Math.round(sum / list.length * 10) / 10 : 0, dist };
+  };
+  route('GET', '/api/reviews', { limit: ['reviews', 120] }, () => {
+    const d = read(), items = d.items.filter(r => r.on);
+    return !d.cfg.on || !items.length ? { on: false } : { on: true, cfg: d.cfg, items, stats: stats(items) };
+  });
+  route('GET', '/api/admin/reviews', { auth: 'admin' }, () => { const d = read(); return { ...d, stats: stats(d.items.filter(r => r.on)) }; });
+  route('PUT', '/api/admin/reviews', { auth: 'admin', big: true }, ({ body }) => {
+    if (!Array.isArray(body.items) || body.items.length > 100) throw new HttpError(400, 'Invalid review list (100 reviews at most)');
+    const d = { cfg: cfgClean(body.cfg), items: itemsClean(body.items) };
+    db.prepare("INSERT INTO settings VALUES('reviews',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v").run(JSON.stringify(d));
+    return { ...d, stats: stats(d.items.filter(r => r.on)) };
+  });
+  return { read };
+})();
+
 /* ---------- server ---------- */
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.webp': 'image/webp', '.gif': 'image/gif', '.txt': 'text/plain', '.mp4': 'video/mp4', '.m4v': 'video/mp4', '.mov': 'video/quicktime', '.webm': 'video/webm', '.ogv': 'video/ogg', '.jpeg': 'image/jpeg' };
 function readBody(req, max) {

@@ -4756,6 +4756,136 @@ if (document.readyState === 'complete') boot(); else window.addEventListener('lo
 </script>
 <style id="promo-css">body.admin-mode #promo-strip,body.admin-mode #promo-banners{display:none}</style>
 
+<script id="reviews-layer-js">
+/* SKINSENTIALS22 customer reviews: shown on the homepage, set and controlled in Admin > Reviews.
+   Saved on the server (settings > reviews); never touches products, orders or posts. Delete this block to remove the feature. */
+(function () {
+'use strict';
+const BASE = window.SK_API_BASE || '', AT = 'sk22adm';
+const $ = id => document.getElementById(id), E = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const toast = m => { try { showToast(m); } catch (e) { alert(m); } };
+const realFetch = window.fetch.bind(window);
+async function api(path, o) {
+  o = o || {}; const h = {}; if (o.body) h['Content-Type'] = 'application/json'; if (o.admin) h.Authorization = 'Bearer ' + (sessionStorage.getItem(AT) || '');
+  let r; try { r = await realFetch(BASE + '/api' + path, { method: o.method || 'GET', headers: h, body: o.body ? JSON.stringify(o.body) : undefined }); } catch (e) { throw new Error('Cannot reach the server. Check your connection.'); }
+  const j = await r.json().catch(() => ({})); if (!r.ok) { const e = new Error(r.status === 401 && o.admin ? 'Your admin session ended. Please sign in again.' : (j.error || 'Something went wrong')); e.status = r.status; throw e; } return j;
+}
+const stars = (n, cls, label) => `<span class="${cls || 'text-base'} tracking-wide whitespace-nowrap" role="img" aria-label="${E(label || 'Rated ' + n + ' out of 5')}"><span class="text-amber-400">${'\u2605'.repeat(n)}</span><span class="text-gray-300">${'\u2605'.repeat(5 - n)}</span></span>`;
+const when = ms => new Date(ms).toLocaleDateString('en-NG', { month: 'long', year: 'numeric' });
+const pname = pid => { if (!pid) return ''; const p = (typeof PRODUCTS !== 'undefined' ? PRODUCTS : []).find(x => String(x.id) === String(pid)); return p ? p.name : ''; };
+function reviewCard(r) {
+  const pn = pname(r.pid);
+  return `<article class="bg-white border border-brand-stone rounded-2xl p-6 flex flex-col gap-3 shadow-sm">
+    <div class="flex items-center justify-between gap-2">${stars(r.rating, 'text-lg')}<time class="text-[11px] text-brand-slate">${E(when(r.date))}</time></div>
+    ${r.title ? `<h3 class="font-semibold text-brand-navy leading-snug">${E(r.title)}</h3>` : ''}
+    <p class="text-sm text-brand-slate leading-relaxed">${E(r.text)}</p>
+    ${r.photo ? `<img src="${E(r.photo)}" alt="Photo shared by ${E(r.name)}" loading="lazy" class="w-full h-40 object-cover rounded-xl" onerror="this.style.display='none'">` : ''}
+    ${pn ? `<button type="button" data-rp="${E(r.pid)}" class="text-xs text-brand-blue font-semibold text-left hover:underline">Reviewed: ${E(pn)} &rarr;</button>` : ''}
+    <div class="mt-auto flex items-center gap-3 pt-3 border-t border-brand-stone/60"><span class="w-9 h-9 rounded-full bg-brand-navy text-white text-sm font-bold flex items-center justify-center shrink-0" aria-hidden="true">${E((r.name.trim()[0] || '?').toUpperCase())}</span>
+      <div class="min-w-0 text-xs"><div class="font-semibold text-brand-navy truncate">${E(r.name)}</div><div class="text-brand-slate truncate">${E(r.location)}${r.location && r.verified ? ' &middot; ' : ''}${r.verified ? '<span class="text-green-700 font-semibold"><i class="fa-solid fa-circle-check"></i> Verified buyer</span>' : ''}</div></div></div></article>`;
+}
+
+/* ---------- storefront ---------- */
+let DATA = null, ALL = false;
+function summary(d) {
+  const s = d.stats, rows = [5, 4, 3, 2, 1].map(n => { const c = s.dist[n - 1], pct = s.count ? Math.round(c / s.count * 100) : 0; return `<div class="flex items-center gap-2 text-xs text-brand-slate"><span class="w-6 text-right">${n}\u2605</span><div class="flex-1 h-2 rounded-full bg-brand-stone/60 overflow-hidden"><div class="h-full bg-amber-400" style="width:${pct}%"></div></div><span class="w-8">${pct}%</span></div>`; }).join('');
+  return `<div class="bg-white border border-brand-stone rounded-2xl p-6 grid sm:grid-cols-[auto_1fr] gap-6 items-center max-w-2xl mx-auto mb-10">
+    <div class="text-center sm:px-6"><div class="font-serif text-5xl font-bold text-brand-navy">${s.avg.toFixed(1)}</div>${stars(Math.round(s.avg), 'text-xl', 'Average rating ' + s.avg.toFixed(1) + ' out of 5')}<div class="text-xs text-brand-slate mt-1">${s.count} review${s.count === 1 ? '' : 's'}</div></div>
+    <div class="space-y-1.5">${rows}</div></div>`;
+}
+function paint() {
+  let sec = $('home-reviews');
+  if (!DATA || !DATA.on) { if (sec) sec.remove(); return; }
+  const home = $('page-home'); if (!home) return;
+  if (!sec) {
+    sec = document.createElement('section'); sec.id = 'home-reviews'; sec.setAttribute('aria-labelledby', 'rv-h'); sec.className = 'bg-brand-ivory/60 border-y border-brand-stone/60';
+    const blog = $('home-blog'); if (blog) blog.insertAdjacentElement('beforebegin', sec); else home.insertAdjacentElement('beforeend', sec);
+  }
+  const c = DATA.cfg, items = DATA.items, shown = ALL ? items : items.slice(0, c.initial);
+  sec.innerHTML = `<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20"><div class="text-center max-w-2xl mx-auto mb-10">${c.kicker ? `<span class="text-xs font-bold text-brand-blue uppercase tracking-widest">${E(c.kicker)}</span>` : ''}<h2 id="rv-h" class="font-serif text-3xl font-bold text-brand-navy mt-1">${E(c.title)}</h2>${c.subtitle ? `<p class="text-sm text-brand-slate mt-2">${E(c.subtitle)}</p>` : ''}</div>
+    ${c.showSummary ? summary(DATA) : ''}
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">${shown.map(reviewCard).join('')}</div>
+    ${items.length > c.initial ? `<div class="text-center mt-10"><button type="button" id="rv-more" class="border border-brand-navy text-brand-navy text-sm font-semibold px-6 py-3 rounded-full hover:bg-brand-navy hover:text-white transition-colors" aria-expanded="${ALL}">${ALL ? 'Show fewer reviews' : 'Show all ' + items.length + ' reviews'}</button></div>` : ''}</div>`;
+  sec.querySelectorAll('[data-rp]').forEach(b => b.onclick = () => { try { openPdp(b.dataset.rp); window.scrollTo(0, 0); } catch (e) {} });
+  const more = $('rv-more'); if (more) more.onclick = () => { ALL = !ALL; paint(); if (!ALL) sec.scrollIntoView({ block: 'start' }); };
+}
+async function load() { try { DATA = await api('/reviews'); paint(); } catch (e) {} }
+
+/* ---------- Admin > Reviews ---------- */
+let AD = { cfg: {}, items: [], stats: { count: 0, avg: 0 } }, EDIT = null;
+const A = (p, o) => api(p, { ...(o || {}), admin: true });
+const fail = e => toast((e && e.message) || 'Something went wrong.');
+const cd = 'bg-white border border-brand-stone rounded-xl', btn = 'bg-brand-navy hover:bg-brand-blue text-white text-xs font-semibold px-5 py-2.5 rounded-full disabled:opacity-40', btn2 = 'border border-brand-stone text-xs font-semibold px-3 py-2 rounded-full hover:bg-brand-mist disabled:opacity-40';
+const dstr = ms => { const d = new Date(ms || Date.now()); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+const field = (id, label, inner, hint) => `<div><label class="block text-[11px] font-semibold text-brand-slate mb-1" for="${id}">${label}</label>${inner}${hint ? `<small class="text-[11px] text-brand-slate">${hint}</small>` : ''}</div>`;
+function adminInit() {
+  if (!$('tab-orders') || $('tab-reviews')) return; const ob = document.querySelector('[data-tab=orders]'); if (!ob) return;
+  ob.insertAdjacentHTML('afterend', '<button data-tab="reviews" onclick="adminTab(\'reviews\')" class="adm-tab-btn text-left text-sm px-3 py-2 rounded-lg text-gray-300 hover:bg-white/10"><i class="fa-solid fa-star w-5"></i>Reviews</button>');
+  $('tab-orders').parentElement.insertAdjacentHTML('beforeend', '<div id="tab-reviews" class="admin-tab hidden"><h1 class="font-serif text-3xl font-bold text-brand-navy mb-1">Customer Reviews</h1><p class="text-xs text-brand-slate mb-4">Control the reviews section on your homepage. Only reviews marked <b>Visible</b> are shown, and the average and percentages are worked out from those. Please add only reviews from real customers, with their permission.</p><div id="rv-body"><p class="text-sm text-brand-slate">Loading\u2026</p></div></div>');
+}
+async function save(cfg, items, msg) { try { await A('/admin/reviews', { method: 'PUT', body: { cfg, items } }); toast(msg); await adminLoad(); load(); } catch (e) { fail(e); } }
+async function adminLoad() {
+  adminInit(); const b = $('rv-body'); if (!b) return;
+  try { AD = await A('/admin/reviews'); } catch (e) { b.innerHTML = `<p class="text-sm text-red-600">${E(e.message)}</p>`; return; }
+  const c = AD.cfg, L = AD.items, s = AD.stats, shown = L.filter(r => r.on).length;
+  const row = (r, i) => `<li class="${cd} p-3 flex flex-wrap items-center gap-3"><div class="flex-1 min-w-[220px] text-xs"><div class="flex flex-wrap items-center gap-2">${stars(r.rating, 'text-sm')}<b class="text-brand-navy">${E(r.name)}</b><span class="px-2 py-0.5 rounded-full ${r.on ? 'bg-green-50 text-green-800' : 'bg-gray-100 text-gray-700'}">${r.on ? 'Visible' : 'Hidden'}</span>${r.verified ? '<span class="px-2 py-0.5 rounded-full bg-blue-50 text-blue-800">Verified buyer</span>' : ''}</div><p class="text-brand-slate mt-1">${E(r.text.length > 140 ? r.text.slice(0, 140) + '\u2026' : r.text)}</p></div>
+    <div class="flex flex-wrap gap-1"><button type="button" class="${btn2}" data-re="${i}">Edit</button><button type="button" class="${btn2}" data-rt="${i}">${r.on ? 'Hide' : 'Show'}</button><button type="button" class="${btn2}" data-ru="${i}" ${i === 0 ? 'disabled' : ''} aria-label="Move up">\u2191</button><button type="button" class="${btn2}" data-rn="${i}" ${i === L.length - 1 ? 'disabled' : ''} aria-label="Move down">\u2193</button><button type="button" class="${btn2} text-red-600" data-rx="${i}">Delete</button></div></li>`;
+  b.innerHTML = `<div class="${cd} p-4 mb-4 space-y-3"><div class="flex flex-wrap items-center justify-between gap-2"><h2 class="font-semibold text-sm text-brand-navy">Section settings</h2><p class="text-xs text-brand-slate">${shown} of ${L.length} visible${shown ? ' \u00B7 average ' + s.avg.toFixed(1) + ' out of 5' : ''}</p></div>
+    <div class="grid sm:grid-cols-2 gap-3">${field('rvc-kicker', 'Small label above the title', '<input id="rvc-kicker" class="adm-in" maxlength="60" value="' + E(c.kicker) + '">')}${field('rvc-title', 'Title', '<input id="rvc-title" class="adm-in" maxlength="100" value="' + E(c.title) + '">')}
+    <div class="sm:col-span-2">${field('rvc-sub', 'Short line under the title (optional)', '<input id="rvc-sub" class="adm-in" maxlength="200" value="' + E(c.subtitle) + '">')}</div>
+    ${field('rvc-init', 'Reviews shown before \u201CShow all\u201D', '<input id="rvc-init" type="number" min="3" max="12" class="adm-in" value="' + E(c.initial) + '">', 'Between 3 and 12.')}</div>
+    <div class="flex flex-wrap gap-4 text-sm"><label class="flex items-center gap-2"><input type="checkbox" id="rvc-on" ${c.on ? 'checked' : ''}> Show the reviews section on the homepage</label><label class="flex items-center gap-2"><input type="checkbox" id="rvc-sum" ${c.showSummary ? 'checked' : ''}> Show the average rating and breakdown</label></div>
+    <button type="button" class="${btn}" id="rvc-save">Save section settings</button></div>
+    <div class="mb-3"><button type="button" class="${btn}" id="rv-add" ${L.length >= 100 ? 'disabled' : ''}>Add a review</button></div><div id="rv-form"></div>
+    <ul class="space-y-2">${L.map(row).join('') || '<li class="text-sm text-brand-slate">No reviews yet. Add your first one.</li>'}</ul>`;
+  const readCfg = () => ({ on: $('rvc-on').checked, kicker: $('rvc-kicker').value.trim(), title: $('rvc-title').value.trim(), subtitle: $('rvc-sub').value.trim(), showSummary: $('rvc-sum').checked, initial: Math.min(12, Math.max(3, parseInt($('rvc-init').value, 10) || 6)) });
+  $('rvc-save').onclick = () => save(readCfg(), L, 'Section settings saved');
+  $('rv-add').onclick = () => { EDIT = { id: '', on: true, name: '', location: '', rating: 5, title: '', text: '', date: Date.now(), verified: false, pid: '', photo: '' }; form(); };
+  const cp = () => L.map(r => ({ ...r }));
+  b.querySelectorAll('[data-re]').forEach(x => x.onclick = () => { EDIT = { ...L[+x.dataset.re] }; form(); });
+  b.querySelectorAll('[data-rt]').forEach(x => x.onclick = () => { const l = cp(), i = +x.dataset.rt; l[i].on = !l[i].on; save(c, l, l[i].on ? 'Review is visible' : 'Review is hidden'); });
+  b.querySelectorAll('[data-ru],[data-rn]').forEach(x => x.onclick = () => { const i = +(x.dataset.ru || x.dataset.rn), j = x.dataset.ru ? i - 1 : i + 1, l = cp(); [l[i], l[j]] = [l[j], l[i]]; save(c, l, 'Order saved'); });
+  b.querySelectorAll('[data-rx]').forEach(x => x.onclick = () => { const r = L[+x.dataset.rx]; if (!confirm('Delete the review from ' + r.name + '?')) return; save(c, L.filter((_, i) => i !== +x.dataset.rx), 'Review deleted'); });
+}
+function form() {
+  const e = EDIT, f = $('rv-form'), c = AD.cfg, L = AD.items;
+  const prods = typeof PRODUCTS !== 'undefined' ? PRODUCTS : [];
+  f.innerHTML = `<div class="${cd} p-4 mb-4 space-y-3"><h2 class="font-semibold text-sm text-brand-navy">${e.id ? 'Edit review' : 'New review'}</h2>
+  <div class="grid sm:grid-cols-2 gap-3">
+    ${field('rv-name', 'Customer name', '<input id="rv-name" class="adm-in" maxlength="60" value="' + E(e.name) + '" placeholder="e.g. Amaka O.">')}${field('rv-loc', 'Location (optional)', '<input id="rv-loc" class="adm-in" maxlength="60" value="' + E(e.location) + '" placeholder="e.g. Lekki, Lagos">')}
+    ${field('rv-rating', 'Rating', '<select id="rv-rating" class="adm-in">' + [5, 4, 3, 2, 1].map(n => `<option value="${n}" ${e.rating === n ? 'selected' : ''}>${n} star${n > 1 ? 's' : ''}</option>`).join('') + '</select>')}${field('rv-date', 'Date of review', '<input id="rv-date" type="date" class="adm-in" value="' + dstr(e.date) + '">')}
+    <div class="sm:col-span-2">${field('rv-ttl', 'Headline (optional)', '<input id="rv-ttl" class="adm-in" maxlength="100" value="' + E(e.title) + '" placeholder="e.g. My skin has never felt better">')}</div>
+    <div class="sm:col-span-2">${field('rv-txt', 'Review', '<textarea id="rv-txt" class="adm-in" rows="4" maxlength="600" placeholder="What the customer said, in their own words">' + E(e.text) + '</textarea>', '<span id="rv-count"></span>')}</div>
+    ${field('rv-pid', 'Product reviewed (optional)', '<select id="rv-pid" class="adm-in"><option value="">No specific product</option>' + prods.map(p => `<option value="${E(p.id)}" ${String(e.pid) === String(p.id) ? 'selected' : ''}>${E(p.name)}</option>`).join('') + '</select>', 'Adds a link to the product under the review.')}
+    ${field('rv-photo', 'Customer photo (optional)', '<div class="flex gap-2"><input id="rv-photo" class="adm-in" maxlength="300" value="' + E(e.photo) + '" placeholder="Paste an image address or upload"><label class="' + btn2 + ' cursor-pointer whitespace-nowrap">Upload<input id="rv-file" type="file" accept="image/*" class="sr-only"></label></div>')}
+  </div>
+  <div class="flex flex-wrap gap-4 text-sm"><label class="flex items-center gap-2"><input type="checkbox" id="rv-vis" ${e.on ? 'checked' : ''}> Visible on the website</label><label class="flex items-center gap-2"><input type="checkbox" id="rv-ver" ${e.verified ? 'checked' : ''}> Verified buyer</label></div>
+  <p class="text-[11px] text-brand-slate -mt-1">Tick \u201CVerified buyer\u201D only if this person really bought from you.</p>
+  <div><p class="text-[11px] font-semibold text-brand-slate mb-1">Preview</p><div id="rv-prev" class="max-w-sm"></div></div>
+  <p id="rv-err" role="alert" class="text-xs text-red-600 min-h-[1rem]"></p><div class="flex gap-2"><button type="button" class="${btn}" id="rv-save">Save review</button><button type="button" class="${btn2}" id="rv-cancel">Cancel</button></div></div>`;
+  const read = () => ({ ...e, name: $('rv-name').value.trim(), location: $('rv-loc').value.trim(), rating: +$('rv-rating').value, date: $('rv-date').value ? new Date($('rv-date').value + 'T12:00:00').getTime() : Date.now(), title: $('rv-ttl').value.trim(), text: $('rv-txt').value.trim(), pid: $('rv-pid').value, photo: $('rv-photo').value.trim(), on: $('rv-vis').checked, verified: $('rv-ver').checked });
+  const prev = () => { const r = read(); $('rv-count').textContent = r.text.length + ' / 600 characters'; $('rv-prev').innerHTML = r.name && r.text ? reviewCard(r) : '<p class="text-xs text-brand-slate">Add a name and a review to see the preview.</p>'; $('rv-prev').querySelectorAll('button').forEach(x => x.onclick = ev => ev.preventDefault()); };
+  f.querySelectorAll('input,select,textarea').forEach(x => { x.addEventListener('input', prev); x.addEventListener('change', prev); }); prev();
+  $('rv-file').onchange = async ev => { const file = ev.target.files[0]; if (!file) return; $('rv-err').textContent = 'Uploading\u2026'; try { const r = await realFetch(BASE + '/api/admin/upload?name=' + encodeURIComponent(file.name), { method: 'POST', headers: { Authorization: 'Bearer ' + (sessionStorage.getItem(AT) || '') }, body: file }), j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Upload failed'); $('rv-photo').value = j.url; $('rv-err').textContent = ''; prev(); } catch (er) { $('rv-err').textContent = er.message; } };
+  $('rv-cancel').onclick = () => { EDIT = null; f.innerHTML = ''; };
+  $('rv-save').onclick = async () => {
+    const r = read(); if (!r.name) { $('rv-err').textContent = 'Add the customer\u2019s name.'; return; } if (!r.text) { $('rv-err').textContent = 'Add the review text.'; return; }
+    if (r.photo && !/^(https:\/\/\S+|\/uploads\/[A-Za-z0-9_.-]+)$/.test(r.photo)) { $('rv-err').textContent = 'The photo must be an https:// address or an uploaded picture.'; return; }
+    const l = L.map(x => ({ ...x })), i = r.id ? l.findIndex(x => x.id === r.id) : -1; if (i >= 0) l[i] = r; else l.unshift(r);
+    try { await A('/admin/reviews', { method: 'PUT', body: { cfg: c, items: l } }); toast('Review saved'); EDIT = null; await adminLoad(); load(); } catch (er) { $('rv-err').textContent = er.message; fail(er); }
+  };
+  f.scrollIntoView({ block: 'nearest' });
+}
+function boot() {
+  const nav = window.navigateTo; if (typeof nav === 'function') window.navigateTo = function (p) { const r = nav.apply(this, arguments); if (p === 'admin') setTimeout(adminInit, 0); return r; };
+  const at = window.adminTab; if (typeof at === 'function') window.adminTab = function (t) { adminInit(); const r = at.apply(this, arguments); if (t === 'reviews') adminLoad(); return r; };
+  load(); setInterval(load, 300000);
+}
+if (document.readyState === 'complete') boot(); else window.addEventListener('load', boot);
+})();
+</script>
+<style id="reviews-css">body.admin-mode #home-reviews{display:none}</style>
+
 <script id="backup-layer-js">
 /* SKINSENTIALS22 Admin > Backups and Safe Update. Back up now, download, check an update, and restore products and posts. */
 (function () {
