@@ -536,11 +536,11 @@
                         <div>
                             <span id="pdp-tag" class="text-xs font-bold uppercase tracking-widest text-brand-blue">Hydration Step</span>
                             <h1 id="pdp-title" class="font-serif text-3xl sm:text-4xl font-bold text-brand-navy mt-1">Product Title</h1>
-                            <div class="flex items-center gap-2 mt-2">
-                                <div class="text-amber-500 text-xs flex gap-1">
+                            <div id="pdp-rating-row" style="display:none" class="flex items-center gap-2 mt-2">
+                                <div id="pdp-stars" class="text-amber-500 text-xs flex gap-1">
                                     <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star-half-stroke"></i>
                                 </div>
-                                <span class="text-xs text-brand-slate font-medium">(128 Verified Reviews)</span>
+                                <span id="pdp-rcount" class="text-xs text-brand-slate font-medium"></span>
                             </div>
                         </div>
 
@@ -4793,6 +4793,35 @@ function summary(d) {
     <div class="text-center sm:px-6"><div class="font-serif text-5xl font-bold text-brand-navy">${s.avg.toFixed(1)}</div>${stars(Math.round(s.avg), 'text-xl', 'Average rating ' + s.avg.toFixed(1) + ' out of 5')}<div class="text-xs text-brand-slate mt-1">${s.count} review${s.count === 1 ? '' : 's'}</div></div>
     <div class="space-y-1.5">${rows}</div></div>`;
 }
+const inp = 'w-full border border-brand-stone rounded-lg px-3 py-2 text-sm bg-white';
+let FORMOPEN = false, PID = null;
+function formHtml() {
+  const prods = typeof PRODUCTS !== 'undefined' ? PRODUCTS : [];
+  return `<form id="rv-form-pub" class="bg-white border border-brand-stone rounded-2xl p-6 space-y-3 text-sm" novalidate><h3 class="font-serif text-xl font-bold text-brand-navy">Share your experience</h3>
+    <div><span class="block text-xs font-semibold text-brand-slate mb-1" id="rvf-rl">Your rating</span><div role="radiogroup" aria-labelledby="rvf-rl" class="flex gap-1 text-2xl">${[1, 2, 3, 4, 5].map(n => `<button type="button" role="radio" aria-checked="${n === 5}" aria-label="${n} star${n > 1 ? 's' : ''}" data-star="${n}" class="text-amber-400">\u2605</button>`).join('')}</div></div>
+    <div class="grid sm:grid-cols-2 gap-3"><div><label class="block text-xs font-semibold text-brand-slate mb-1" for="rvf-name">Name</label><input id="rvf-name" class="${inp}" maxlength="60" autocomplete="name"></div><div><label class="block text-xs font-semibold text-brand-slate mb-1" for="rvf-loc">Location (optional)</label><input id="rvf-loc" class="${inp}" maxlength="60" placeholder="e.g. Lekki, Lagos"></div></div>
+    <div><label class="block text-xs font-semibold text-brand-slate mb-1" for="rvf-email">Email</label><input id="rvf-email" type="email" class="${inp}" maxlength="254" autocomplete="email"><small class="text-[11px] text-brand-slate">Only used to check your order. Never shown on the website.</small></div>
+    ${prods.length ? `<div><label class="block text-xs font-semibold text-brand-slate mb-1" for="rvf-pid">Product (optional)</label><select id="rvf-pid" class="${inp}"><option value="">Our store in general</option>${prods.map(p => `<option value="${E(p.id)}">${E(p.name)}</option>`).join('')}</select></div>` : ''}
+    <div><label class="block text-xs font-semibold text-brand-slate mb-1" for="rvf-ttl">Headline (optional)</label><input id="rvf-ttl" class="${inp}" maxlength="100"></div>
+    <div><label class="block text-xs font-semibold text-brand-slate mb-1" for="rvf-txt">Your review</label><textarea id="rvf-txt" rows="4" maxlength="600" class="${inp}"></textarea></div>
+    <input id="rvf-web" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px">
+    <p id="rvf-err" role="alert" class="text-xs text-red-600 min-h-[1rem]"></p>
+    <div class="flex gap-2"><button type="submit" class="bg-brand-navy hover:bg-brand-blue text-white text-sm font-semibold px-6 py-2.5 rounded-full disabled:opacity-40">Send review</button><button type="button" id="rvf-cancel" class="border border-brand-stone text-sm font-semibold px-5 py-2.5 rounded-full">Cancel</button></div></form>`;
+}
+function openForm() {
+  const box = $('rv-formbox'); if (!box) return; FORMOPEN = true; box.innerHTML = formHtml(); box.classList.remove('hidden'); let rating = 5;
+  const paintStars = () => box.querySelectorAll('[data-star]').forEach(x => { const on = +x.dataset.star <= rating; x.style.opacity = on ? 1 : .3; x.setAttribute('aria-checked', String(+x.dataset.star === rating)); });
+  box.querySelectorAll('[data-star]').forEach(x => x.onclick = () => { rating = +x.dataset.star; paintStars(); }); paintStars();
+  $('rvf-cancel').onclick = () => { FORMOPEN = false; paint(); };
+  $('rv-form-pub').onsubmit = async ev => {
+    ev.preventDefault(); const err = $('rvf-err'), sb = ev.target.querySelector('[type=submit]'); err.textContent = ''; sb.disabled = true;
+    try {
+      await api('/reviews/submit', { method: 'POST', body: { rating, name: $('rvf-name').value, location: $('rvf-loc').value, email: $('rvf-email').value, pid: $('rvf-pid') ? $('rvf-pid').value : '', title: $('rvf-ttl').value, text: $('rvf-txt').value, website: $('rvf-web').value } });
+      FORMOPEN = false; box.innerHTML = '<div class="bg-white border border-brand-stone rounded-2xl p-6 text-center" role="status"><h3 class="font-serif text-xl font-bold text-brand-navy">Thank you!</h3><p class="text-sm text-brand-slate mt-1">Your review has been received. It will appear on the website once our team has approved it.</p></div>';
+    } catch (e) { err.textContent = e.message; sb.disabled = false; }
+  };
+  $('rvf-name').focus(); box.scrollIntoView({ block: 'nearest' });
+}
 function paint() {
   let sec = $('home-reviews');
   if (!DATA || !DATA.on) { if (sec) sec.remove(); return; }
@@ -4803,13 +4832,23 @@ function paint() {
   }
   const c = DATA.cfg, items = DATA.items, shown = ALL ? items : items.slice(0, c.initial);
   sec.innerHTML = `<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20"><div class="text-center max-w-2xl mx-auto mb-10">${c.kicker ? `<span class="text-xs font-bold text-brand-blue uppercase tracking-widest">${E(c.kicker)}</span>` : ''}<h2 id="rv-h" class="font-serif text-3xl font-bold text-brand-navy mt-1">${E(c.title)}</h2>${c.subtitle ? `<p class="text-sm text-brand-slate mt-2">${E(c.subtitle)}</p>` : ''}</div>
-    ${c.showSummary ? summary(DATA) : ''}
-    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">${shown.map(reviewCard).join('')}</div>
-    ${items.length > c.initial ? `<div class="text-center mt-10"><button type="button" id="rv-more" class="border border-brand-navy text-brand-navy text-sm font-semibold px-6 py-3 rounded-full hover:bg-brand-navy hover:text-white transition-colors" aria-expanded="${ALL}">${ALL ? 'Show fewer reviews' : 'Show all ' + items.length + ' reviews'}</button></div>` : ''}</div>`;
+    ${c.showSummary && items.length ? summary(DATA) : ''}
+    ${items.length ? `<div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">${shown.map(reviewCard).join('')}</div>` : '<p class="text-center text-sm text-brand-slate">No reviews yet. Be the first to share your experience.</p>'}
+    ${items.length > c.initial ? `<div class="text-center mt-10"><button type="button" id="rv-more" class="border border-brand-navy text-brand-navy text-sm font-semibold px-6 py-3 rounded-full hover:bg-brand-navy hover:text-white transition-colors" aria-expanded="${ALL}">${ALL ? 'Show fewer reviews' : 'Show all ' + items.length + ' reviews'}</button></div>` : ''}
+    ${c.submit ? '<div class="text-center mt-8"><button type="button" id="rv-write" class="bg-brand-navy hover:bg-brand-blue text-white text-sm font-semibold px-6 py-3 rounded-full">Write a review</button></div><div id="rv-formbox" class="hidden max-w-xl mx-auto mt-8"></div>' : ''}</div>`;
   sec.querySelectorAll('[data-rp]').forEach(b => b.onclick = () => { try { openPdp(b.dataset.rp); window.scrollTo(0, 0); } catch (e) {} });
   const more = $('rv-more'); if (more) more.onclick = () => { ALL = !ALL; paint(); if (!ALL) sec.scrollIntoView({ block: 'start' }); };
+  const wr = $('rv-write'); if (wr) wr.onclick = openForm;
 }
-async function load() { try { DATA = await api('/reviews'); paint(); } catch (e) {} }
+/* the rating under a product's title comes from the visible reviews that are linked to that product; with none it stays hidden */
+function pdpRating(id) {
+  if (id != null) PID = id; const row = $('pdp-rating-row'); if (!row) return;
+  const list = DATA && DATA.on && PID != null ? DATA.items.filter(r => String(r.pid) === String(PID)) : [];
+  if (!list.length) { row.style.display = 'none'; return; }
+  const avg = list.reduce((n, r) => n + r.rating, 0) / list.length;
+  $('pdp-stars').innerHTML = stars(Math.round(avg), 'text-sm', 'Average rating ' + avg.toFixed(1) + ' out of 5'); $('pdp-rcount').textContent = avg.toFixed(1) + ' \u00B7 ' + list.length + ' review' + (list.length === 1 ? '' : 's'); row.style.display = '';
+}
+async function load() { try { const r = await api('/reviews'); DATA = r; if (!FORMOPEN) paint(); pdpRating(); } catch (e) {} }
 
 /* ---------- Admin > Reviews ---------- */
 let AD = { cfg: {}, items: [], stats: { count: 0, avg: 0 } }, EDIT = null;
@@ -4821,25 +4860,29 @@ const field = (id, label, inner, hint) => `<div><label class="block text-[11px] 
 function adminInit() {
   if (!$('tab-orders') || $('tab-reviews')) return; const ob = document.querySelector('[data-tab=orders]'); if (!ob) return;
   ob.insertAdjacentHTML('afterend', '<button data-tab="reviews" onclick="adminTab(\'reviews\')" class="adm-tab-btn text-left text-sm px-3 py-2 rounded-lg text-gray-300 hover:bg-white/10"><i class="fa-solid fa-star w-5"></i>Reviews</button>');
-  $('tab-orders').parentElement.insertAdjacentHTML('beforeend', '<div id="tab-reviews" class="admin-tab hidden"><h1 class="font-serif text-3xl font-bold text-brand-navy mb-1">Customer Reviews</h1><p class="text-xs text-brand-slate mb-4">Control the reviews section on your homepage. Only reviews marked <b>Visible</b> are shown, and the average and percentages are worked out from those. Please add only reviews from real customers, with their permission.</p><div id="rv-body"><p class="text-sm text-brand-slate">Loading\u2026</p></div></div>');
+  $('tab-orders').parentElement.insertAdjacentHTML('beforeend', '<div id="tab-reviews" class="admin-tab hidden"><h1 class="font-serif text-3xl font-bold text-brand-navy mb-1">Customer Reviews</h1><p class="text-xs text-brand-slate mb-4">Control the reviews section on your homepage. Only reviews marked <b>Visible</b> are shown, and the average and percentages are worked out from those. Switch on <b>Let customers send in reviews</b> and every one waits here for your approval first. Please add only reviews from real customers, with their permission.</p><div id="rv-body"><p class="text-sm text-brand-slate">Loading\u2026</p></div></div>');
 }
 async function save(cfg, items, msg) { try { await A('/admin/reviews', { method: 'PUT', body: { cfg, items } }); toast(msg); await adminLoad(); load(); } catch (e) { fail(e); } }
 async function adminLoad() {
   adminInit(); const b = $('rv-body'); if (!b) return;
   try { AD = await A('/admin/reviews'); } catch (e) { b.innerHTML = `<p class="text-sm text-red-600">${E(e.message)}</p>`; return; }
-  const c = AD.cfg, L = AD.items, s = AD.stats, shown = L.filter(r => r.on).length;
+  const c = AD.cfg, L = AD.items, s = AD.stats, shown = L.filter(r => r.on).length, P = AD.pending || [];
+  const prow = p => `<li class="${cd} p-3 text-xs space-y-2 border-amber-300"><div class="flex flex-wrap items-center gap-2">${stars(p.rating, 'text-sm')}<b class="text-brand-navy">${E(p.name)}</b><span class="text-brand-slate">${E(p.email)}${p.location ? ' \u00B7 ' + E(p.location) : ''}</span>${p.buyer ? '<span class="px-2 py-0.5 rounded-full bg-green-50 text-green-800">Matched a paid order</span>' : '<span class="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">No paid order found</span>'}</div>${p.title ? `<p class="font-semibold text-brand-navy">${E(p.title)}</p>` : ''}<p class="text-brand-slate">${E(p.text)}</p>${pname(p.pid) ? `<p class="text-brand-slate">Product: ${E(pname(p.pid))}</p>` : ''}<div class="flex gap-1"><button type="button" class="${btn}" data-pa="${E(p.id)}">Approve and show</button><button type="button" class="${btn2} text-red-600" data-pr="${E(p.id)}">Reject</button></div></li>`;
   const row = (r, i) => `<li class="${cd} p-3 flex flex-wrap items-center gap-3"><div class="flex-1 min-w-[220px] text-xs"><div class="flex flex-wrap items-center gap-2">${stars(r.rating, 'text-sm')}<b class="text-brand-navy">${E(r.name)}</b><span class="px-2 py-0.5 rounded-full ${r.on ? 'bg-green-50 text-green-800' : 'bg-gray-100 text-gray-700'}">${r.on ? 'Visible' : 'Hidden'}</span>${r.verified ? '<span class="px-2 py-0.5 rounded-full bg-blue-50 text-blue-800">Verified buyer</span>' : ''}</div><p class="text-brand-slate mt-1">${E(r.text.length > 140 ? r.text.slice(0, 140) + '\u2026' : r.text)}</p></div>
     <div class="flex flex-wrap gap-1"><button type="button" class="${btn2}" data-re="${i}">Edit</button><button type="button" class="${btn2}" data-rt="${i}">${r.on ? 'Hide' : 'Show'}</button><button type="button" class="${btn2}" data-ru="${i}" ${i === 0 ? 'disabled' : ''} aria-label="Move up">\u2191</button><button type="button" class="${btn2}" data-rn="${i}" ${i === L.length - 1 ? 'disabled' : ''} aria-label="Move down">\u2193</button><button type="button" class="${btn2} text-red-600" data-rx="${i}">Delete</button></div></li>`;
-  b.innerHTML = `<div class="${cd} p-4 mb-4 space-y-3"><div class="flex flex-wrap items-center justify-between gap-2"><h2 class="font-semibold text-sm text-brand-navy">Section settings</h2><p class="text-xs text-brand-slate">${shown} of ${L.length} visible${shown ? ' \u00B7 average ' + s.avg.toFixed(1) + ' out of 5' : ''}</p></div>
+  b.innerHTML = `${P.length ? `<div class="mb-4"><h2 class="font-semibold text-sm text-brand-navy mb-2">Waiting for your approval (${P.length})</h2><ul class="space-y-2">${P.map(prow).join('')}</ul></div>` : ''}<div class="${cd} p-4 mb-4 space-y-3"><div class="flex flex-wrap items-center justify-between gap-2"><h2 class="font-semibold text-sm text-brand-navy">Section settings</h2><p class="text-xs text-brand-slate">${shown} of ${L.length} visible${shown ? ' \u00B7 average ' + s.avg.toFixed(1) + ' out of 5' : ''}</p></div>
     <div class="grid sm:grid-cols-2 gap-3">${field('rvc-kicker', 'Small label above the title', '<input id="rvc-kicker" class="adm-in" maxlength="60" value="' + E(c.kicker) + '">')}${field('rvc-title', 'Title', '<input id="rvc-title" class="adm-in" maxlength="100" value="' + E(c.title) + '">')}
     <div class="sm:col-span-2">${field('rvc-sub', 'Short line under the title (optional)', '<input id="rvc-sub" class="adm-in" maxlength="200" value="' + E(c.subtitle) + '">')}</div>
     ${field('rvc-init', 'Reviews shown before \u201CShow all\u201D', '<input id="rvc-init" type="number" min="3" max="12" class="adm-in" value="' + E(c.initial) + '">', 'Between 3 and 12.')}</div>
-    <div class="flex flex-wrap gap-4 text-sm"><label class="flex items-center gap-2"><input type="checkbox" id="rvc-on" ${c.on ? 'checked' : ''}> Show the reviews section on the homepage</label><label class="flex items-center gap-2"><input type="checkbox" id="rvc-sum" ${c.showSummary ? 'checked' : ''}> Show the average rating and breakdown</label></div>
+    <div class="flex flex-wrap gap-4 text-sm"><label class="flex items-center gap-2"><input type="checkbox" id="rvc-on" ${c.on ? 'checked' : ''}> Show the reviews section on the homepage</label><label class="flex items-center gap-2"><input type="checkbox" id="rvc-sum" ${c.showSummary ? 'checked' : ''}> Show the average rating and breakdown</label><label class="flex items-center gap-2"><input type="checkbox" id="rvc-submit" ${c.submit ? 'checked' : ''}> Let customers send in reviews (you approve each one)</label></div>
     <button type="button" class="${btn}" id="rvc-save">Save section settings</button></div>
     <div class="mb-3"><button type="button" class="${btn}" id="rv-add" ${L.length >= 100 ? 'disabled' : ''}>Add a review</button></div><div id="rv-form"></div>
     <ul class="space-y-2">${L.map(row).join('') || '<li class="text-sm text-brand-slate">No reviews yet. Add your first one.</li>'}</ul>`;
-  const readCfg = () => ({ on: $('rvc-on').checked, kicker: $('rvc-kicker').value.trim(), title: $('rvc-title').value.trim(), subtitle: $('rvc-sub').value.trim(), showSummary: $('rvc-sum').checked, initial: Math.min(12, Math.max(3, parseInt($('rvc-init').value, 10) || 6)) });
+  const readCfg = () => ({ on: $('rvc-on').checked, kicker: $('rvc-kicker').value.trim(), title: $('rvc-title').value.trim(), subtitle: $('rvc-sub').value.trim(), showSummary: $('rvc-sum').checked, submit: $('rvc-submit').checked, initial: Math.min(12, Math.max(3, parseInt($('rvc-init').value, 10) || 6)) });
   $('rvc-save').onclick = () => save(readCfg(), L, 'Section settings saved');
+  const decide = async (id, action, msg) => { try { await A('/admin/reviews/pending/' + encodeURIComponent(id), { method: 'POST', body: { action } }); toast(msg); await adminLoad(); load(); } catch (e) { fail(e); if (e.status === 404) adminLoad(); } };
+  b.querySelectorAll('[data-pa]').forEach(x => x.onclick = () => decide(x.dataset.pa, 'approve', 'Review approved and now visible'));
+  b.querySelectorAll('[data-pr]').forEach(x => x.onclick = () => { if (confirm('Reject and delete this review?')) decide(x.dataset.pr, 'reject', 'Review rejected'); });
   $('rv-add').onclick = () => { EDIT = { id: '', on: true, name: '', location: '', rating: 5, title: '', text: '', date: Date.now(), verified: false, pid: '', photo: '' }; form(); };
   const cp = () => L.map(r => ({ ...r }));
   b.querySelectorAll('[data-re]').forEach(x => x.onclick = () => { EDIT = { ...L[+x.dataset.re] }; form(); });
@@ -4879,6 +4922,7 @@ function form() {
 function boot() {
   const nav = window.navigateTo; if (typeof nav === 'function') window.navigateTo = function (p) { const r = nav.apply(this, arguments); if (p === 'admin') setTimeout(adminInit, 0); return r; };
   const at = window.adminTab; if (typeof at === 'function') window.adminTab = function (t) { adminInit(); const r = at.apply(this, arguments); if (t === 'reviews') adminLoad(); return r; };
+  const op = window.openPdp; if (typeof op === 'function') window.openPdp = function (id) { const r = op.apply(this, arguments); pdpRating(id); return r; };
   load(); setInterval(load, 300000);
 }
 if (document.readyState === 'complete') boot(); else window.addEventListener('load', boot);
