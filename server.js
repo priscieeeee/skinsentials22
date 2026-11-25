@@ -1217,12 +1217,12 @@ const PROMO = (() => {
    Saved in the settings table under 'reviews' as { cfg, items }. They never touch products, orders or posts.
    The public endpoint returns only reviews the admin has left visible, and only when the section is switched on. */
 const REVIEWS = (() => {
-  const DEF = { on: true, kicker: 'Customer love', title: 'What our customers say', subtitle: '', showSummary: true, initial: 6 };
+  const DEF = { on: true, kicker: 'Customer love', title: 'What our customers say', subtitle: '', showSummary: true, initial: 6, submit: false };
   const ts = v => { const n = Math.floor(+v); return Number.isFinite(n) && n > 1e11 && n < 4.2e12 ? n : null; };
   const img = v => { v = String(v || '').trim().slice(0, 300); return (/^https:\/\/[^\s]+$/i.test(v) || /^\/uploads\/[A-Za-z0-9_.-]+$/.test(v)) ? v : ''; };
   const cfgClean = c => {
     c = c && typeof c === 'object' ? c : {};
-    return { on: c.on !== false, kicker: c.kicker === undefined ? DEF.kicker : str(c.kicker, 60), title: str(c.title, 100) || DEF.title, subtitle: str(c.subtitle, 200), showSummary: c.showSummary !== false, initial: Math.min(12, Math.max(3, Math.round(+c.initial) || DEF.initial)) };
+    return { on: c.on !== false, kicker: c.kicker === undefined ? DEF.kicker : str(c.kicker, 60), title: str(c.title, 100) || DEF.title, subtitle: str(c.subtitle, 200), showSummary: c.showSummary !== false, submit: c.submit === true, initial: Math.min(12, Math.max(3, Math.round(+c.initial) || DEF.initial)) };
   };
   const itemsClean = list => (Array.isArray(list) ? list : []).slice(0, 100).map((r, i) => {
     r = r && typeof r === 'object' ? r : {};
@@ -1241,16 +1241,44 @@ const REVIEWS = (() => {
     const dist = [0, 0, 0, 0, 0]; let sum = 0; for (const r of list) { dist[r.rating - 1]++; sum += r.rating; }
     return { count: list.length, avg: list.length ? Math.round(sum / list.length * 10) / 10 : 0, dist };
   };
+  /* customer submissions wait in their own list ('reviews_pending') until the admin approves them, so nothing a visitor sends can reach the site by itself */
+  const PK = 'reviews_pending';
+  const pendRead = () => { try { const a = JSON.parse((db.prepare('SELECT v FROM settings WHERE k=?').get(PK) || {}).v || '[]'); return Array.isArray(a) ? a : []; } catch { return []; } };
+  const pendWrite = a => db.prepare('INSERT INTO settings VALUES(?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v').run(PK, JSON.stringify(a));
+  const put = d => db.prepare("INSERT INTO settings VALUES('reviews',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v").run(JSON.stringify(d));
+  const out = () => { const d = read(); return { ...d, pending: pendRead(), stats: stats(d.items.filter(r => r.on)) }; };
   route('GET', '/api/reviews', { limit: ['reviews', 120] }, () => {
     const d = read(), items = d.items.filter(r => r.on);
-    return !d.cfg.on || !items.length ? { on: false } : { on: true, cfg: d.cfg, items, stats: stats(items) };
+    return !d.cfg.on || (!items.length && !d.cfg.submit) ? { on: false } : { on: true, cfg: d.cfg, items, stats: stats(items) };
   });
-  route('GET', '/api/admin/reviews', { auth: 'admin' }, () => { const d = read(); return { ...d, stats: stats(d.items.filter(r => r.on)) }; });
+  route('POST', '/api/reviews/submit', { auth: 'optional', limit: ['revsub', 6] }, ({ user, body }) => {
+    const d = read(); if (!d.cfg.on || !d.cfg.submit) throw new HttpError(403, 'Reviews are not open right now.');
+    if (str(body.website, 100)) return { ok: true };   // hidden field that only bots fill in: pretend it worked, store nothing
+    const name = str(body.name, 60), email = str(body.email, 254).toLowerCase(), text = str(body.text, 600);
+    if (!name) throw new HttpError(400, 'Please tell us your name.');
+    if (!emailOk(email)) throw new HttpError(400, 'Please enter a valid email address. It is never shown on the website.');
+    if (text.length < 10) throw new HttpError(400, 'Please write a sentence or two about your experience.');
+    const list = pendRead(); if (list.length >= 200) throw new HttpError(429, 'We have a lot of reviews waiting right now. Please try again later.');
+    if (list.some(p => p.email === email && p.text === text)) return { ok: true };
+    const buyer = !!(user ? db.prepare('SELECT 1 FROM orders WHERE paid=1 AND (LOWER(email)=? OR user_id=?) LIMIT 1').get(email, user.id) : db.prepare('SELECT 1 FROM orders WHERE paid=1 AND LOWER(email)=? LIMIT 1').get(email));
+    const p = { id: 'p' + now().toString(36) + crypto.randomBytes(3).toString('hex'), name, email, location: str(body.location, 60), rating: Math.min(5, Math.max(1, Math.round(+body.rating) || 5)), title: str(body.title, 100), text, pid: str(body.pid, 64), buyer, created: now() };
+    list.push(p); pendWrite(list);
+    quiet(notifyAdmin('New customer review waiting for approval', [`${p.name} gave ${p.rating}/5`, p.text, buyer ? 'Matched a paid order.' : 'No paid order found for this email.', 'Approve or reject it in Admin > Reviews.']));
+    return { ok: true };
+  });
+  route('GET', '/api/admin/reviews', { auth: 'admin' }, () => out());
   route('PUT', '/api/admin/reviews', { auth: 'admin', big: true }, ({ body }) => {
     if (!Array.isArray(body.items) || body.items.length > 100) throw new HttpError(400, 'Invalid review list (100 reviews at most)');
-    const d = { cfg: cfgClean(body.cfg), items: itemsClean(body.items) };
-    db.prepare("INSERT INTO settings VALUES('reviews',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v").run(JSON.stringify(d));
-    return { ...d, stats: stats(d.items.filter(r => r.on)) };
+    put({ cfg: cfgClean(body.cfg), items: itemsClean(body.items) }); return out();
+  });
+  route('POST', '/api/admin/reviews/pending/:id', { auth: 'admin' }, ({ params, body }) => {
+    const list = pendRead(), i = list.findIndex(p => p.id === params.id); if (i < 0) throw new HttpError(404, 'That review was already handled. Reload the page.');
+    const p = list[i];
+    if (body.action === 'approve') {
+      const d = read(); if (d.items.length >= 100) throw new HttpError(400, 'You already have 100 reviews. Delete one first.');
+      put({ cfg: d.cfg, items: itemsClean([{ on: true, name: p.name, location: p.location, rating: p.rating, title: p.title, text: p.text, date: now(), verified: !!p.buyer, pid: p.pid, photo: '' }, ...d.items]) });
+    } else if (body.action !== 'reject') throw new HttpError(400, 'Unknown action');
+    list.splice(i, 1); pendWrite(list); return out();
   });
   return { read };
 })();
