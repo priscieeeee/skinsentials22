@@ -4923,6 +4923,8 @@ function boot() {
   const nav = window.navigateTo; if (typeof nav === 'function') window.navigateTo = function (p) { const r = nav.apply(this, arguments); if (p === 'admin') setTimeout(adminInit, 0); return r; };
   const at = window.adminTab; if (typeof at === 'function') window.adminTab = function (t) { adminInit(); const r = at.apply(this, arguments); if (t === 'reviews') adminLoad(); return r; };
   const op = window.openPdp; if (typeof op === 'function') window.openPdp = function (id) { const r = op.apply(this, arguments); pdpRating(id); return r; };
+  const ra = window.renderAdmin; if (typeof ra === 'function') window.renderAdmin = function () { adminInit(); return ra.apply(this, arguments); };
+  adminInit();
   load(); setInterval(load, 300000);
 }
 if (document.readyState === 'complete') boot(); else window.addEventListener('load', boot);
@@ -5037,6 +5039,7 @@ function adminInit() {
   if (!$('tab-orders') || $('tab-bulk')) return; const ob = document.querySelector('[data-tab=products]') || document.querySelector('[data-tab=orders]'); if (!ob) return;
   ob.insertAdjacentHTML('afterend', '<button data-tab="bulk" onclick="adminTab(\'bulk\')" class="adm-tab-btn text-left text-sm px-3 py-2 rounded-lg text-gray-300 hover:bg-white/10"><i class="fa-solid fa-file-excel w-5"></i>Bulk Upload</button>');
   $('tab-orders').parentElement.insertAdjacentHTML('beforeend', '<div id="tab-bulk" class="admin-tab hidden"><h1 class="font-serif text-3xl font-bold text-brand-navy mb-1">Bulk Upload Products</h1><p class="text-xs text-brand-slate mb-4">Add or update many products at once from the Excel form. Nothing is saved until you press Import.</p><div id="bulk-body"></div></div>');
+  const pt = $('tab-products'); if (pt && !$('bulk-hint')) pt.insertAdjacentHTML('afterbegin', '<div id="bulk-hint" class="bg-white border border-brand-stone rounded-xl p-3 flex flex-wrap items-center justify-between gap-2 text-sm"><span class="text-brand-navy"><i class="fa-solid fa-file-excel mr-2"></i>Adding many products? Upload them from an Excel form.</span><button type="button" onclick="adminTab(\'bulk\')" class="bg-brand-navy hover:bg-brand-blue text-white text-xs font-semibold px-4 py-2 rounded-full">Bulk Upload</button></div>');
 }
 function shell() {
   const b = $('bulk-body'); if (!b) return;
@@ -5084,6 +5087,8 @@ async function doImport() {
 function boot() {
   const nav = window.navigateTo; if (typeof nav === 'function') window.navigateTo = function (p) { const r = nav.apply(this, arguments); if (p === 'admin') setTimeout(adminInit, 0); return r; };
   const at = window.adminTab; if (typeof at === 'function') window.adminTab = function (t) { adminInit(); const r = at.apply(this, arguments); if (t === 'bulk') shell(); return r; };
+  const ra = window.renderAdmin; if (typeof ra === 'function') window.renderAdmin = function () { adminInit(); return ra.apply(this, arguments); };
+  adminInit();
 }
 if (typeof module !== 'undefined' && module.exports) module.exports = { parseSheet };
 else if (document.readyState === 'complete') boot(); else window.addEventListener('load', boot);
