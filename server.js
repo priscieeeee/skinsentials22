@@ -1367,6 +1367,7 @@ const SEO = (() => {
   const handle = function (req, res, url) {
     const p = url.pathname, html = (code, body) => { send(res, code, req.method === 'HEAD' ? '' : body, 'text/html; charset=utf-8', { 'Cache-Control': 'no-cache' }); return true; };
     if (/^\/[a-f0-9]{32}\.txt$/.test(p) && p.slice(1, 33) === ixKey()) { send(res, 200, p.slice(1, 33), 'text/plain; charset=utf-8'); return true; }   // proves to search engines that this site owns the IndexNow key
+    if (p === '/googlee63d671ac0925060.html') { send(res, 200, req.method === 'HEAD' ? '' : 'google-site-verification: googlee63d671ac0925060.html', 'text/html; charset=utf-8', { 'Cache-Control': 'no-cache' }); return true; }   // Google Search Console ownership check: served directly so it works wherever the site is deployed
     if (p === '/robots.txt') { send(res, 200, `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /uploads/private/\n\nSitemap: ${SITE}/sitemap.xml\n`, 'text/plain; charset=utf-8', { 'Cache-Control': 'public, max-age=3600' }); return true; }
     if (p === '/sitemap.xml') {
       const u = (l, pr, img) => `<url><loc>${e(l)}</loc><lastmod>${day()}</lastmod><priority>${pr}</priority>${img ? `<image:image><image:loc>${e(img)}</image:loc></image:image>` : ''}</url>`;
