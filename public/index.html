@@ -137,6 +137,24 @@
     <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin><link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <script type="application/ld+json" id="sk-ld-base">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://skinsentials22.com.ng/#org","name":"Skinsentials22","url":"https://skinsentials22.com.ng/","email":"Skinsentials22@gmail.com","telephone":"+2349032078594","sameAs":["https://www.instagram.com/Skinsentials22","https://www.tiktok.com/@skinsentialss22"],"contactPoint":{"@type":"ContactPoint","telephone":"+2349032078594","contactType":"customer service","areaServed":"NG","availableLanguage":"English"}},{"@type":"WebSite","@id":"https://skinsentials22.com.ng/#site","url":"https://skinsentials22.com.ng/","name":"Skinsentials22","inLanguage":"en-NG","publisher":{"@id":"https://skinsentials22.com.ng/#org"}},{"@type":"OnlineStore","name":"Skinsentials22","url":"https://skinsentials22.com.ng/","image":"https://skinsentials22.com.ng/uploads/starter-v1-share.jpg","areaServed":{"@type":"Country","name":"Nigeria"},"currenciesAccepted":"NGN","paymentAccepted":"Paystack, Card, Bank Transfer","parentOrganization":{"@id":"https://skinsentials22.com.ng/#org"}}]}</script>
     <script type="application/ld+json" id="sk-ld-page"></script>
+<script id="sale-display-js">
+/* Shows sale prices (original price crossed out, new price under it) and the Glow Points each product earns.
+   Product records keep their regular price; the server sends the price customers pay in window.SK_SALES and the points in window.SK_PTS. */
+(function () {
+  'use strict';
+  const N = n => typeof window.naira === 'function' ? window.naira(n) : '\u20a6' + Math.round(n).toLocaleString('en-NG');
+  window.skEff = function (p) { const reg = +(p && p.price) || 0, s = p && (window.SK_SALES || {})[p.id]; return s && s.price > 0 && s.price < reg ? { price: s.price, was: reg, pct: s.pct, endsAt: s.endsAt, label: s.label } : { price: reg, was: 0, pct: 0 }; };
+  window.skPts = function (p) { return (p && (window.SK_PTS || {})[p.id]) || 0; };
+  window.skPrice = function (p, o) {
+    o = o || {}; const e = window.skEff(p), n = window.skPts(p), big = !!o.big;
+    const main = `<span class="font-bold text-brand-navy ${big ? 'text-2xl' : o.small ? 'text-sm' : ''}">${N(e.price)}</span>`;
+    const pts = n && !o.nopts ? `<span class="inline-flex items-center gap-1 w-fit rounded-full bg-brand-mist text-brand-blue font-semibold ${big ? 'text-xs px-3 py-1' : 'text-[10px] px-2 py-0.5'}" title="Glow Points you earn when you buy this"><i class="fa-solid fa-star" aria-hidden="true"></i>Earn ${n} Glow Points</span>` : '';
+    if (!e.was) return `<span class="flex flex-col leading-tight gap-1 items-start">${main}${pts}</span>`;
+    const ends = e.endsAt && big ? `<span class="text-xs text-red-600 font-semibold">Sale ends ${new Date(e.endsAt).toLocaleDateString('en-NG', { weekday: 'short', day: 'numeric', month: 'short' })}</span>` : '';
+    return `<span class="flex flex-col leading-tight gap-1 items-start"><del class="${big ? 'text-sm' : 'text-xs'} text-gray-400 font-normal" aria-label="Original price">${N(e.was)}</del><span class="flex items-center gap-2 flex-wrap">${main}<span class="rounded bg-red-50 text-red-600 text-[10px] font-bold px-1.5 py-0.5" aria-label="${e.pct} percent off">-${e.pct}%</span></span>${ends}${pts}</span>`;
+  };
+})();
+</script>
 </head>
 <body class="bg-brand-warm text-brand-navy font-sans antialiased selection:bg-brand-mist selection:text-brand-blue min-h-screen flex flex-col justify-between">
 <noscript><div style="max-width:720px;margin:2rem auto;padding:1rem;font-family:Arial,sans-serif"><h1>Skinsentials22 — Skincare &amp; Beauty Products in Nigeria</h1><p>Authentic skincare, sun care, body care, baby care and gift cards, delivered across Nigeria. Please enable JavaScript to shop.</p><ul><li><a href="/shop">Shop skincare</a></li><li><a href="/videos">Watch &amp; shop videos</a></li><li><a href="/skin-quiz">Skin finder quiz</a></li><li><a href="/skin-consultation">Skin consultation</a></li><li><a href="/ingredients">Shop by ingredient</a></li><li><a href="/brands">Brands</a></li><li><a href="/gift-cards">Gift cards</a></li><li><a href="/journal">Skincare journal</a></li></ul><p>WhatsApp: <a href="https://wa.me/2349032078594">09032078594</a></p></div></noscript>
@@ -621,34 +639,35 @@
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
                         <div class="lg:col-span-7 space-y-6">
                             <span class="px-3 py-1 bg-white/10 text-brand-mist text-xs font-semibold uppercase tracking-widest rounded-full">Official Mobile App</span>
-                            <h1 class="font-serif text-4xl sm:text-5xl font-bold leading-tight">
+                            <h1 id="app-title" class="font-serif text-4xl sm:text-5xl font-bold leading-tight">
                                 Unlock the Full <span class="text-brand-blue">SKINSENTIALS22</span> Experience
                             </h1>
-                            <p class="text-gray-300 text-base font-light max-w-xl leading-relaxed">
+                            <p id="app-text" class="text-gray-300 text-base font-light max-w-xl leading-relaxed">
                                 Stream interactive video routine guides, track daily skin progress, receive custom restock reminders, and get first access to limited ingredient drops.
                             </p>
                             
                             <div class="flex flex-col sm:flex-row items-center gap-4 pt-4">
-                                <button onclick="showToast('Redirecting to App Store...')" class="w-full sm:w-auto bg-white text-brand-navy px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-3 hover:bg-brand-mist transition-colors">
+                                <button id="app-ios" onclick="showToast('Redirecting to App Store...')" class="w-full sm:w-auto bg-white text-brand-navy px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-3 hover:bg-brand-mist transition-colors">
                                     <i class="fa-brands fa-apple text-xl"></i>
                                     <div class="text-left">
                                         <div class="text-[10px] uppercase tracking-wider text-gray-500">Download on the</div>
                                         <div class="text-xs font-bold">App Store</div>
                                     </div>
                                 </button>
-                                <button onclick="showToast('Redirecting to Google Play...')" class="w-full sm:w-auto bg-white/10 border border-white/20 text-white px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-3 hover:bg-white/20 transition-colors">
+                                <button id="app-and" onclick="showToast('Redirecting to Google Play...')" class="w-full sm:w-auto bg-white/10 border border-white/20 text-white px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-3 hover:bg-white/20 transition-colors">
                                     <i class="fa-brands fa-google-play text-xl"></i>
                                     <div class="text-left">
                                         <div class="text-[10px] uppercase tracking-wider text-gray-400">GET IT ON</div>
                                         <div class="text-xs font-bold">Google Play</div>
                                     </div>
                                 </button>
+                                <a id="app-apk" href="#" download style="display:none" class="w-full sm:w-auto bg-brand-blue text-white px-6 py-3.5 rounded-xl font-bold items-center justify-center gap-3 hover:bg-blue-600 transition-colors"><i class="fa-solid fa-download text-xl"></i><div class="text-left"><div class="text-[10px] uppercase tracking-wider text-blue-100">Android file</div><div class="text-xs font-bold">Download APK</div></div></a>
                             </div>
                         </div>
 
                         <!-- App Mockup Preview -->
                         <div class="lg:col-span-5 flex justify-center">
-                            <div class="w-72 h-[520px] bg-brand-navy border-4 border-white/20 rounded-[40px] shadow-2xl p-4 flex flex-col justify-between relative overflow-hidden">
+                            <div id="app-mock" class="w-72 h-[520px] bg-brand-navy border-4 border-white/20 rounded-[40px] shadow-2xl p-4 flex flex-col justify-between relative overflow-hidden">
                                 <div class="w-32 h-4 bg-white/20 rounded-full mx-auto mb-4"></div>
                                 <div class="text-center space-y-3 my-auto">
                                     <div class="w-16 h-16 bg-brand-blue text-white rounded-full flex items-center justify-center mx-auto text-2xl font-serif font-bold shadow-lg">22</div>
@@ -926,13 +945,13 @@
             <div class="grid grid-cols-1 md:grid-cols-4 gap-10 pb-12 border-b border-white/10">
                 <div class="space-y-4">
                     <span class="inline-block bg-white rounded-xl p-2"><img data-logo alt="Skinsentials22 logo" class="h-12 w-auto"></span><br>
-                    <span class="font-serif text-2xl font-bold tracking-wider">SKINSENTIALS<span class="text-brand-blue">22</span></span>
-                    <p class="text-xs text-gray-400 font-light leading-relaxed">Elevating skin through video-first product discovery, transparent ingredients, and custom routine guidance.</p>
+                    <span id="ft-name" class="font-serif text-2xl font-bold tracking-wider">SKINSENTIALS<span class="text-brand-blue">22</span></span>
+                    <p id="ft-tag" class="text-xs text-gray-400 font-light leading-relaxed">Elevating skin through video-first product discovery, transparent ingredients, and custom routine guidance.</p>
                     <ul class="space-y-2 text-xs text-gray-300 pt-2">
-                        <li><a href="mailto:Skinsentials22@gmail.com" class="hover:text-white flex items-center gap-2"><i class="fa-solid fa-envelope w-4"></i>Skinsentials22@gmail.com</a></li>
-                        <li><a href="https://wa.me/2349032078594" target="_blank" rel="noopener" class="hover:text-white flex items-center gap-2"><i class="fa-brands fa-whatsapp w-4"></i>09032078594</a></li>
-                        <li><a href="https://www.instagram.com/Skinsentials22" target="_blank" rel="noopener" class="hover:text-white flex items-center gap-2"><i class="fa-brands fa-instagram w-4"></i>@Skinsentials22</a></li>
-                        <li><a href="https://www.tiktok.com/@skinsentialss22" target="_blank" rel="noopener" class="hover:text-white flex items-center gap-2"><i class="fa-brands fa-tiktok w-4"></i>@skinsentialss22</a></li>
+                        <li><a id="ft-email" href="mailto:Skinsentials22@gmail.com" class="hover:text-white flex items-center gap-2"><i class="fa-solid fa-envelope w-4"></i>Skinsentials22@gmail.com</a></li>
+                        <li><a id="ft-wa" href="https://wa.me/2349032078594" target="_blank" rel="noopener" class="hover:text-white flex items-center gap-2"><i class="fa-brands fa-whatsapp w-4"></i>09032078594</a></li>
+                        <li><a id="ft-ig" href="https://www.instagram.com/Skinsentials22" target="_blank" rel="noopener" class="hover:text-white flex items-center gap-2"><i class="fa-brands fa-instagram w-4"></i>@Skinsentials22</a></li>
+                        <li><a id="ft-tt" href="https://www.tiktok.com/@skinsentialss22" target="_blank" rel="noopener" class="hover:text-white flex items-center gap-2"><i class="fa-brands fa-tiktok w-4"></i>@skinsentialss22</a></li>
                     </ul>
                 </div>
                 <div>
@@ -1023,7 +1042,7 @@
                         </div>
                     </div>
                     <div class="p-5 pt-0 flex items-center justify-between">
-                        <span class="font-bold text-brand-navy">${naira(product.price)}</span>
+                        ${skPrice(product)}
                         <span class="flex items-center">${btnFor(product)}</span>
                     </div>
                 `;
@@ -1047,7 +1066,7 @@
                     <span class="text-[10px] font-bold text-brand-blue uppercase">${esc(product.tag || '')}</span>
                     <h4 class="font-serif text-base font-bold text-brand-navy mt-0.5">${esc(product.name)}</h4>
                     <div class="flex justify-between items-center mt-3">
-                        <span class="font-bold text-sm text-brand-navy">${naira(product.price)}</span>
+                        ${skPrice(product, {small: true})}
                         <span class="text-xs text-brand-blue font-semibold hover:underline">View Product →</span>
                     </div>
                 `;
@@ -1065,8 +1084,8 @@
                 return matchesSearch;
             });
 
-            if (sortVal === 'price-low') filtered.sort((a,b) => a.price - b.price);
-            if (sortVal === 'price-high') filtered.sort((a,b) => b.price - a.price);
+            if (sortVal === 'price-low') filtered.sort((a,b) => skEff(a).price - skEff(b).price);
+            if (sortVal === 'price-high') filtered.sort((a,b) => skEff(b).price - skEff(a).price);
             if (sortVal === 'rating') filtered.sort((a,b) => b.rating - a.rating);
 
             renderCatalog(filtered);
@@ -1104,7 +1123,7 @@
 
             document.getElementById('pdp-breadcrumb').innerText = product.name;
             document.getElementById('pdp-title').innerText = product.name;
-            document.getElementById('pdp-price').innerText = `${naira(product.price)}`;
+            document.getElementById('pdp-price').innerHTML = skPrice(product, {big: true});
             document.getElementById('pdp-description').innerText = product.description;
             document.getElementById('pdp-ingredients').innerText = product.ingredients || 'Please see the ingredient list on the product packaging.';
             document.getElementById('pdp-usage').innerText = product.usage;
@@ -1139,7 +1158,7 @@
                 if (have >= product.stock) { showToast(`You already have all ${product.stock} that we have of ${product.name}`); return false; }
                 add = product.stock - have; showToast(`Only ${product.stock} of ${product.name} available. Added ${add}.`);
             } else showToast(`Added ${product.name} to Bag`);
-            if (existing) existing.qty += add; else cart.push({ ...product, qty: add });
+            if (existing) existing.qty += add; else cart.push({ ...product, price: skEff(product).price, qty: add });
             updateCartUI();
             return true;
         }
@@ -1157,7 +1176,7 @@
                     const q = Math.max(1, Math.min(20, Math.floor(+it.qty) || 1));
                     if (it.giftCard) { if (+it.price >= 25000 && +it.price <= 1000000) cart.push({ id: String(it.id), name: String(it.name || 'Gift Card'), price: +it.price, qty: q, giftCard: true, note: String(it.note || ''), image: String(it.image || '') }); return; }
                     const p = PRODUCTS.find(x => x.id === it.id); if (!p || soldOut(p)) { dropped++; return; }
-                    cart.push({ ...p, qty: typeof p.stock === 'number' ? Math.min(q, p.stock) : q });
+                    cart.push({ ...p, price: skEff(p).price, qty: typeof p.stock === 'number' ? Math.min(q, p.stock) : q });
                 });
                 if (dropped) showToast('Some items in your bag are no longer available');
             } catch (e) {}
@@ -1259,12 +1278,12 @@
                     <div>
                         <span class="text-[10px] font-bold text-brand-blue uppercase">${esc(product.tag || '')}</span>
                         <h4 class="font-serif text-base font-bold text-brand-navy">${esc(product.name)}</h4>
-                        <span class="text-sm font-bold text-brand-navy">${naira(product.price)}</span>
+                        ${skPrice(product, {small: true})}
                     </div>
                 </div>
                 <p class="text-xs text-brand-slate leading-relaxed">${esc(product.description || '')}</p>
                 <button onclick="addToCart('${product.id}'); closeVideoProductDrawer();" class="w-full bg-brand-navy text-white py-3 rounded-full text-xs font-bold hover:bg-brand-blue transition-colors">
-                    Add to Bag — ${naira(product.price)}
+                    Add to Bag — ${naira(skEff(product).price)}
                 </button>
             `;
             document.getElementById('video-drawer').classList.remove('hidden');
@@ -1310,7 +1329,7 @@
                     <span class="text-[10px] font-bold text-brand-blue uppercase">Match Score: 98%</span>
                     <h4 class="font-serif text-lg font-bold text-brand-navy">${matchedProduct.name}</h4>
                     <p class="text-xs text-brand-slate">${matchedProduct.description}</p>
-                    <span class="text-sm font-bold text-brand-navy block">${naira(matchedProduct.price)}</span>
+                    ${skPrice(matchedProduct, {small: true})}
                 </div>
             `;
 
@@ -1738,7 +1757,7 @@ const _dp = deleteProduct; deleteProduct = function (id) { _dp(id); buildHero();
         <div class="p-5 space-y-2"><span class="inline-flex items-center gap-1.5 text-[10px] uppercase font-bold text-brand-blue tracking-wider">${logoImg(brandOf(p), 'h-5 w-5')}${E(brandOf(p))}</span>
           <h3 class="font-serif text-lg font-bold text-brand-navy cursor-pointer hover:text-brand-blue transition-colors" onclick="openPdp('${p.id}')">${E(p.name)}</h3>
           </div></div>
-      <div class="p-5 pt-0 flex items-center justify-between"><span class="font-bold text-brand-navy">${naira(p.price)}</span>
+      <div class="p-5 pt-0 flex items-center justify-between">${skPrice(p)}
         <span class="flex items-center">${btnFor(p)}</span></div></div>`;
   }
   function fill(grid, empty, list) {
@@ -1888,7 +1907,7 @@ const _dp = deleteProduct; deleteProduct = function (id) { _dp(id); buildHero();
     out.innerHTML = r.slice(0, 8).map(p => `<button type="button" onclick="closeSearch();openPdp('${p.id}')" class="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-brand-mist text-left transition-colors">
         <img src="${E(p.image)}" alt="" class="w-14 h-14 rounded-lg object-cover bg-brand-ivory shrink-0">
         <span class="flex-1 min-w-0"><span class="block text-[10px] uppercase font-bold text-brand-blue tracking-wider">${E(p.brand || 'SKINSENTIALS22')} · ${E(window.SK_DEPT_LABEL(p))}</span><span class="block font-serif font-bold text-brand-navy truncate">${E(p.name)}</span></span>
-        <span class="font-bold text-sm text-brand-navy">${price(p.price)}</span></button>`).join('') +
+        <span class="font-bold text-sm text-brand-navy">${price(skEff(p).price)}</span></button>`).join('') +
       `<button type="button" onclick="searchAll()" class="w-full mt-2 py-3 text-sm font-semibold text-brand-blue hover:underline">See all ${r.length} ${r.length === 1 ? 'result' : 'results'} <i class="fa-solid fa-arrow-right ml-1"></i></button>`;
   };
   window.searchFill = function (t) { g('srch-q').value = t; searchRun(); g('srch-q').focus(); };
@@ -1929,7 +1948,7 @@ const _dp = deleteProduct; deleteProduct = function (id) { _dp(id); buildHero();
     }
     $('co-lines').innerHTML = rows.join(''); $('co-total').innerText = cur(total());
     const eta = $('co-eta'), intl = z === 'intl' && physical(); eta.classList.toggle('hidden', !(d && physical()));
-    if (d && physical()) eta.innerHTML = (z === 'lagos' || z === 'other') ? `<b class="text-brand-navy"><i class="fa-solid fa-truck-fast mr-1 text-brand-blue"></i>Estimated delivery: ${skEta(z)}</b><br>${d[z].days} working days ${z === 'lagos' ? 'within Lagos' : 'outside Lagos'}. Orders are processed within ${esc(d.processing)}.` : `<i class="fa-solid fa-truck-fast mr-1 text-brand-blue"></i>Orders are processed within ${esc(d.processing)}. Delivery takes ${d.lagos.days} working days within Lagos and ${d.other.days} working days outside Lagos.`;
+    if (d && physical()) eta.innerHTML = (z === 'lagos' || z === 'other') ? `<b class="text-brand-navy"><i class="fa-solid fa-truck-fast mr-1 text-brand-blue"></i>Estimated delivery: ${skEta(z)}</b><br>${d[z].days} working days ${z === 'lagos' ? 'within Lagos' : 'outside Lagos'}. Orders are processed within ${esc(d.processing)}.${d.cutoff ? ' ' + esc(d.cutoff) : ''}` : `<i class="fa-solid fa-truck-fast mr-1 text-brand-blue"></i>Orders are processed within ${esc(d.processing)}.${d.cutoff ? ' ' + esc(d.cutoff) : ''} Delivery takes ${d.lagos.days} working days within Lagos and ${d.other.days} working days outside Lagos.`;
     $('co-intl').classList.toggle('hidden', !intl); ['co-methods', 'co-howpay', 'co-pay', 'co-note'].forEach(i => $(i).classList.toggle('hidden', intl));
     if (intl) { $('co-intl-msg').textContent = d.intlNote; $('co-intl-wa').href = waLink(`Hello Skinsentials22, I'd like shipping rates for an international order: ${cart.map(i => i.qty + 'x ' + i.name).join(', ')}. Total ${cur(sub())}. Country/address: ${($('co-addr').value || '').trim()}`); }
     else if ($('co-methods').children.length) selPm(pm);
@@ -1960,7 +1979,7 @@ const _dp = deleteProduct; deleteProduct = function (id) { _dp(id); buildHero();
   async function boot() {
     try { localStorage.removeItem('sk22'); } catch (e) {}
     try { API.cfg = await call('/config'); API.online = true; } catch (e) { markAcct(); cartLoad(); return; }
-    try { const r = await call('/products'); window.SK_REV = r.rev; window.SK_LOADED = true; window.SK_FEATURED = r.featured || null; if (r.products.length) { PRODUCTS.splice(0, PRODUCTS.length, ...r.products); renderCatalog(PRODUCTS); renderHomeFeatured(); buildHero(); } } catch (e) {}
+    try { const r = await call('/products'); window.SK_REV = r.rev; window.SK_LOADED = true; window.SK_FEATURED = r.featured || null; window.SK_SALES = r.sales || {}; window.SK_PTS = r.pts || {}; if (r.products.length) { PRODUCTS.splice(0, PRODUCTS.length, ...r.products); renderCatalog(PRODUCTS); renderHomeFeatured(); buildHero(); } } catch (e) {}
     try { window.SK_BRANDS = (await call('/brands')).brands || {}; } catch (e) { window.SK_BRANDS = window.SK_BRANDS || {}; }
     try { window.skAfterProducts && window.skAfterProducts(); } catch (e) { console.error(e); }
     try { const c = await call('/content'); if (c.has) { applyContent(c); } } catch (e) {}
@@ -2384,8 +2403,8 @@ const _dp = deleteProduct; deleteProduct = function (id) { _dp(id); buildHero();
       if (chip === 'video' ? !hasVid(p) : (chip !== 'all' && p.category !== chip)) return false;
       return !q || [p.name, p.description, p.ingredients, p.tag, p.brand || DEFAULT_BRAND, skinLabel(p), p.category].join(' ').toLowerCase().includes(q);
     });
-    if (sort === 'price-low') list.sort((a, b) => a.price - b.price);
-    if (sort === 'price-high') list.sort((a, b) => b.price - a.price);
+    if (sort === 'price-low') list.sort((a, b) => skEff(a).price - skEff(b).price);
+    if (sort === 'price-high') list.sort((a, b) => skEff(b).price - skEff(a).price);
     if (sort === 'rating') list.sort((a, b) => b.rating - a.rating);
     renderCatalog(list);
   };
@@ -2707,13 +2726,13 @@ const zoneOf = st => st === 'Lagos' ? 'lagos' : st === INTL ? 'intl' : NG_STATES
       <div class="flex justify-between gap-3"><span>Within Lagos</span><span><b class="text-brand-navy">${N(d.lagos.fee)}</b> · ${E(d.lagos.days)} working days</span></div>
       <div class="flex justify-between gap-3"><span>Outside Lagos / other states</span><span><b class="text-brand-navy">${N(d.other.fee)}</b> · ${E(d.other.days)} working days</span></div>
       <div>International orders: <a href="${wa}" target="_blank" rel="noopener" class="text-brand-blue font-semibold underline">contact us on WhatsApp</a> for shipping rates.</div>
-      ${d.freeOver ? `<div class="text-green-700 font-semibold">Free delivery on orders over ${N(d.freeOver)}</div>` : ''}<div class="italic">Orders are processed within ${E(d.processing)}.</div></div>`;
+      ${d.freeOver ? `<div class="text-green-700 font-semibold">Free delivery on orders over ${N(d.freeOver)}</div>` : ''}<div class="italic">Orders are processed within ${E(d.processing)}.${d.cutoff ? ' ' + E(d.cutoff) : ''}</div></div>`;
     return `<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"><div class="text-center mb-8"><span class="text-[10px] uppercase font-bold tracking-widest text-brand-blue">Shipping</span><h2 class="font-serif text-3xl font-bold text-brand-navy mt-1">Delivery Fees &amp; Timelines</h2></div>
       <div class="grid md:grid-cols-3 gap-5">
         <div class="bg-white border border-brand-stone rounded-2xl p-6 text-center"><i class="fa-solid fa-city text-2xl text-brand-blue"></i><h3 class="font-serif text-lg font-bold text-brand-navy mt-3">Within Lagos</h3><p class="text-2xl font-bold text-brand-navy mt-1">${N(d.lagos.fee)}</p><p class="text-xs text-brand-slate mt-1">${E(d.lagos.days)} working days</p></div>
         <div class="bg-white border border-brand-stone rounded-2xl p-6 text-center"><i class="fa-solid fa-route text-2xl text-brand-blue"></i><h3 class="font-serif text-lg font-bold text-brand-navy mt-3">Outside Lagos / Other States</h3><p class="text-2xl font-bold text-brand-navy mt-1">${N(d.other.fee)}</p><p class="text-xs text-brand-slate mt-1">${E(d.other.days)} working days</p></div>
         <div class="bg-white border border-brand-stone rounded-2xl p-6 text-center"><i class="fa-solid fa-earth-africa text-2xl text-brand-blue"></i><h3 class="font-serif text-lg font-bold text-brand-navy mt-3">International Orders</h3><p class="text-sm text-brand-slate mt-2">Please contact us on WhatsApp for shipping rates.</p><a href="${wa}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 mt-3 bg-[#25D366] text-white text-xs font-semibold px-5 py-2.5 rounded-full"><i class="fa-brands fa-whatsapp"></i> Chat on WhatsApp</a></div></div>
-      <p class="text-center text-xs text-brand-slate mt-6"><b class="text-brand-navy">Note:</b> orders are processed within ${E(d.processing)}. Your delivery fee is worked out automatically from your state and address at checkout.${d.freeOver ? ` Free delivery on orders over ${N(d.freeOver)}.` : ''}</p></div>`;
+      <p class="text-center text-xs text-brand-slate mt-6"><b class="text-brand-navy">Note:</b> orders are processed within ${E(d.processing)}.${d.cutoff ? ' ' + E(d.cutoff) : ''} Your delivery fee is worked out automatically from your state and address at checkout.${d.freeOver ? ` Free delivery on orders over ${N(d.freeOver)}.` : ''}</p></div>`;
   };
   window.skInjectDelivery = function () {
     const d = dcfg(); if (!d) return; const c = window.skDeliveryHtml(true);
@@ -2983,7 +3002,7 @@ const zoneOf = st => st === 'Lagos' ? 'lagos' : st === INTL ? 'intl' : NG_STATES
     const imgs = [p.image].concat(Array.isArray(p.gallery) ? p.gallery : []).map(abs).filter(Boolean);
     const o = {'@type': 'Product', name: p.name, description: trim(p.description, 300), sku: String(p.id), category: p.category || undefined, image: imgs.length ? imgs : undefined,
       brand: {'@type': 'Brand', name: p.brand || BRAND}, url: prodUrl(p),
-      offers: {'@type': 'Offer', url: prodUrl(p), priceCurrency: 'NGN', price: String(Math.round(+p.price || 0)), itemCondition: 'https://schema.org/NewCondition',
+      offers: {'@type': 'Offer', url: prodUrl(p), priceCurrency: 'NGN', price: String(Math.round(skEff(p).price || 0)), itemCondition: 'https://schema.org/NewCondition',
         availability: (typeof p.stock === 'number' && p.stock <= 0) ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock', seller: {'@id': SITE + '/#org'}}};
     /* aggregateRating is deliberately NOT emitted: Google only allows it for real, visible customer reviews. */
     return o;
@@ -2991,7 +3010,7 @@ const zoneOf = st => st === 'Lagos' ? 'lagos' : st === INTL ? 'intl' : NG_STATES
   function forPage(pg) {
     if (pg === 'pdp') {
       const p = (typeof activePdpProduct !== 'undefined') && activePdpProduct; if (!p) return null;
-      return {title: p.name + ' — Buy in Nigeria | ' + BRAND, desc: trim(p.description, 155) + ' ' + '₦' + Math.round(+p.price || 0).toLocaleString('en-NG') + '.', url: SERVER ? prodUrl(p) : SITE + '/', path: '/p/' + encodeURIComponent(p.id) + '/' + slug(p.name),
+      return {title: p.name + ' — Buy in Nigeria | ' + BRAND, desc: trim(p.description, 155) + ' ' + '₦' + Math.round(skEff(p).price || 0).toLocaleString('en-NG') + '.', url: SERVER ? prodUrl(p) : SITE + '/', path: '/p/' + encodeURIComponent(p.id) + '/' + slug(p.name),
         type: 'product', image: abs(p.image), ld: {'@context': 'https://schema.org', '@graph': [ldProduct(p), crumbs([['Home', SITE + '/'], ['Shop', SITE + '/shop'], [p.name, prodUrl(p)]])]}};
     }
     if (pg === 'post') {
@@ -3561,7 +3580,7 @@ html.pl-lock,html.pl-lock body{overflow:hidden!important}
     whatsapp: '2349032078594',
     hours: '',                // e.g. 'Mon–Sat, 9am–6pm WAT'
     privacyEmail: '',         // blank = uses support email
-    effective: '8 November 2026',
+    effective: '26 November 2026',
     /* Operations — set only what you can really meet */
     processDays: '1–2',       // business days to pack after payment is confirmed
     deliveryLocal: '1–3',     // business days, within your home city
@@ -3582,8 +3601,22 @@ html.pl-lock,html.pl-lock body{overflow:hidden!important}
   /* ================================================================= */
 
   const $ = id => document.getElementById(id);
-  const legal = B.legalName || B.brand;
-  const pmail = B.privacyEmail || B.email;
+  let legal = B.legalName || B.brand;
+  let pmail = B.privacyEmail || B.email;
+  /* Admin > General overrides the details above; policies the owner rewrote come from /api/legal */
+  const G = () => window.__skGeneral || {};
+  function applyB() {
+    const g = G(); if (g.legal_name) B.legalName = g.legal_name; if (g.address) B.address = g.address; if (g.support_email) B.email = g.support_email; if (g.support_phone) B.phone = g.support_phone; if (g.whatsapp) B.whatsapp = g.whatsapp; if (g.hours) B.hours = g.hours; if (g.privacy_email) B.privacyEmail = g.privacy_email; if (g.legal_effective) B.effective = g.legal_effective; if (g.store_name) B.brand = g.store_name; if (g.instagram) B.instagram = g.instagram;
+    try { if (g.site_url) B.site = new URL(g.site_url).host; } catch (_) {}
+    [['return_days', 'returnDays'], ['refund_days', 'refundDays'], ['damage_hours', 'damageReportHours'], ['ack_days', 'ackDays'], ['resolve_days', 'resolveDays']].forEach(([a, b]) => { if (g[a] !== undefined && g[a] !== '' && !isNaN(+g[a])) B[b] = +g[a]; });
+    legal = B.legalName || B.brand; pmail = B.privacyEmail || B.email;
+  }
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+  const inl = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+|mailto:[^\s)]+|tel:[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  const mdLite = t => { const out = []; let list = []; const flush = () => { if (list.length) { out.push('<ul>' + list.map(x => '<li>' + inl(x) + '</li>').join('') + '</ul>'); list = []; } };
+    String(t).split(/\n/).forEach(line => { const l = line.trim(); if (!l) { flush(); return; } if (/^##\s+/.test(l)) { flush(); out.push('<h2>' + inl(l.replace(/^##\s+/, '')) + '</h2>'); } else if (/^[-*]\s+/.test(l)) list.push(l.replace(/^[-*]\s+/, '')); else { flush(); out.push('<p>' + inl(l) + '</p>'); } }); flush(); return out.join(''); };
+  let CUSTOM = null, CURID = 'terms';
+  const loadCustom = () => CUSTOM ? Promise.resolve() : fetch((window.SK_API_BASE || '') + '/api/legal').then(r => r.json()).then(j => { CUSTOM = j && j.custom ? j : { custom: {} }; }).catch(() => { CUSTOM = { custom: {} }; });
   const contact = () => {
     const a = [];
     if (B.email) a.push(`<a href="mailto:${B.email}">${B.email}</a>`);
@@ -3596,6 +3629,7 @@ html.pl-lock,html.pl-lock body{overflow:hidden!important}
 
   const P = [];
   function build() {
+  applyB();
   P.length = 0;
   const dl = (window.SK_API && window.SK_API.cfg && window.SK_API.cfg.delivery) || {};
   const proc = dl.processing || '24 hours';
@@ -3609,7 +3643,7 @@ html.pl-lock,html.pl-lock body{overflow:hidden!important}
 <h2>1. Who we are</h2>
 <p>These Terms apply to ${B.site} (the “Site”), operated by <b>${legal}</b>${addr()} (“${B.brand}”, “we”, “us”). Contact: ${contact()}. By using the Site or placing an order you agree to these Terms and the linked policies (Shipping, Returns &amp; Refunds, Cancellation, Payments, Privacy, Cookies). If you do not agree, please do not use the Site.</p>
 <h2>2. Eligibility and accounts</h2>
-<p>You must be legally able to enter a contract to place an order. Keep your login details private and give accurate information. Tell us promptly if you suspect someone has used your account. We may suspend an account where needed to protect customers, the Site or our legal rights.</p>
+<p>You must be legally able to enter a contract to place an order. Keep your login details private and give accurate information. Tell us promptly if you suspect someone has used your account. Notices about your orders, payments, rewards and account security are shown in the Notifications tab of your profile and may also be sent by email, so please check them. We may suspend an account where needed to protect customers, the Site or our legal rights.</p>
 <h2>3. Products and information</h2>
 <p>We aim to describe products, ingredients, sizes, prices and images accurately. Screens vary, and packaging or batches may be updated, so minor differences can occur. Please read the label, ingredients, directions and warnings before use. Product information and skin-care guidance (including the skin quiz and consultation) is general information, not medical advice. Results vary from person to person and are not guaranteed. See the Product Safety notice.</p>
 <h2>4. Orders and contract</h2>
@@ -3644,6 +3678,7 @@ html.pl-lock,html.pl-lock body{overflow:hidden!important}
 <li><b>Account:</b> your login details (email and password), plus any saved profile details (name, phone, address) and favourites you choose to sync.</li>
 <li><b>Skin quiz / consultation:</b> answers you choose to give about skin type and concerns. Please avoid sharing medical details you don’t need to; if you tell us about an allergy or reaction we use it only to help you and keep you safe.</li>
 <li><b>Technical:</b> device, browser, IP address and basic usage data needed to run and secure the Site.</li>
+<li><b>Account notifications:</b> the service messages we show in the Notifications tab of your profile (for example order received, payment confirmed, shipped, delivered, refunds, reward updates and password changes), with the time and whether you have read them. We keep your newest 100, and you can clear them at any time.</li>
 <li><b>Marketing:</b> your preferences and any email or WhatsApp subscription.</li>
 <li><b>Referrals (only while we run a programme):</b> your referral code, the status and value of each referral, and your store-credit balance. For a friend’s order we keep the order itself plus a one-way coded form of the email address, used only to apply the offer once per friend and to check for misuse. Visits to a referral link are counted per code per day, with no IP address or device identifier, and deleted after 90 days.</li>
 </ul>
@@ -3654,10 +3689,11 @@ html.pl-lock,html.pl-lock body{overflow:hidden!important}
 <li>To keep records required by tax, accounting and consumer law (legal obligation).</li>
 <li>To send offers and updates only where you agreed, or where the law allows. You can opt out at any time (consent / legitimate interests).</li>
 <li>To run the referral programme: give you a code, apply offers, calculate and reverse rewards, and prevent misuse (contract and legitimate interests). Referral emails are service messages about your own account, not marketing. We never message a friend because someone shared their details, and a referrer never sees a friend’s identity, contact details or order contents.</li>
+<li>To show you order, payment, delivery, reward and security notices in your profile (contract and legitimate interests). These are service messages about your own account, not marketing, and they never include your full card details.</li>
 <li>To improve products, content and the Site.</li>
 </ul>
 <h2>Who we share it with</h2>
-<p>Only what is needed, with: payment processors (e.g. Paystack), couriers and delivery partners, website hosting and IT providers, messaging/email providers, professional advisers, and authorities where the law requires. We do <b>not</b> sell your personal data. If a provider processes data outside Nigeria, we use safeguards required by data protection law.</p>
+<p>Only what is needed, with: payment processors (e.g. Paystack), couriers and delivery partners, website hosting and IT providers, messaging/email providers, professional advisers, and authorities where the law requires. We do <b>not</b> sell your personal data. <b>Search engines and Google Shopping:</b> we publish our product, price, stock and blog information so search engines can list it. This includes public page addresses and product details sent to Google (including Google Merchant Center and Search Console) and to search engines that accept update notices (such as Bing through IndexNow). It does not include any customer, order or account data. If a provider processes data outside Nigeria, we use safeguards required by data protection law.</p>
 <h2>How long we keep it</h2>
 <p>Only as long as needed for the purpose, including order records, tax and legal requirements, disputes and fraud prevention. When no longer needed we delete or anonymise it.</p>
 <h2>Security</h2>
@@ -3804,6 +3840,15 @@ html.pl-lock,html.pl-lock body{overflow:hidden!important}
 
   }
   build();
+  /* the built-in wording as plain text, so Admin > General can load it into the editor */
+  window.skPolicyDefault = function (id) {
+    build(); const p = P.find(x => x.id === id); if (!p) return ''; const t = document.createElement('div'); t.innerHTML = p.html;
+    const inline = n => [...n.childNodes].map(c => c.nodeType === 3 ? c.textContent : c.nodeName === 'A' && /^(https?:|mailto:|tel:)/.test(c.getAttribute('href') || '') ? '[' + c.textContent + '](' + c.getAttribute('href') + ')' : (c.nodeName === 'B' || c.nodeName === 'STRONG') ? '**' + c.textContent + '**' : c.nodeName === 'BR' ? ' ' : c.textContent).join('').replace(/\s+/g, ' ').trim();
+    const out = []; let inList = false; [...t.children].forEach(n => { if (/^H[1-4]$/.test(n.nodeName)) { out.push('', '## ' + inline(n), ''); inList = false; } else if (n.nodeName === 'UL' || n.nodeName === 'OL') { if (!inList) out.push(''); [...n.children].forEach(li => out.push('- ' + inline(li))); out.push(''); inList = false; } else { const s = inline(n); if (s) out.push(s, ''); } });
+    return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  };
+  if (document.readyState === 'complete') loadCustom(); else window.addEventListener('load', loadCustom);
+  window.skPolicyReload = function () { CUSTOM = null; return loadCustom(); };   // Admin > General calls this after saving
 
   /* ================= RENDERING ================= */
   const ov = document.createElement('div');
@@ -3820,8 +3865,10 @@ html.pl-lock,html.pl-lock body{overflow:hidden!important}
 
   function show(id) {
     build();
-    const p = P.find(x => x.id === id) || P[0];
-    doc.innerHTML = `<h1>${p.title}</h1><div class="pl-meta">${B.brand} · Effective ${B.effective}</div>${p.html}`;
+    const p = P.find(x => x.id === id) || P[0]; CURID = p.id;
+    const cu = CUSTOM && CUSTOM.custom && CUSTOM.custom[p.id]; let html = cu ? mdLite(cu) : p.html;
+    if (!cu && p.id === 'shipping' && G().cutoff_text) html += '<h2>Order cut-off</h2><p>' + esc(G().cutoff_text) + '</p>';
+    doc.innerHTML = `<h1>${p.title}</h1><div class="pl-meta">${B.brand} · Effective ${B.effective}</div>${html}`;
     tabs.querySelectorAll('.pl-tab').forEach(b => {
       const on = b.dataset.id === p.id; b.classList.toggle('on', on); b.setAttribute('aria-selected', on);
       if (on && b.scrollIntoView) { try { b.scrollIntoView({inline: 'center', block: 'nearest'}); } catch (_) {} }
@@ -3832,6 +3879,7 @@ html.pl-lock,html.pl-lock body{overflow:hidden!important}
   window.openPolicy = function (id) {
     lastFocus = document.activeElement;
     show(id || 'terms');
+    if (!CUSTOM) loadCustom().then(() => { if (ov.classList.contains('open')) show(CURID); });
     ov.classList.add('open');
     const x = ov.querySelector('.pl-x'); if (x) { try { x.focus({preventScroll: true}); } catch (_) {} }
     document.documentElement.classList.add('pl-lock');
@@ -4013,7 +4061,7 @@ const ACTS = {
 const ROW_ACTS = { review: ['approve', 'reject'], qualifying: ['reverse', 'reject'], qualified: ['reverse', 'reject'], reversed: ['reinstate'], rejected: ['reinstate'] };
 /* [path, type, label, hint] */
 const FIELDS = [
-  { t: 'Campaign', n: 'What customers see on the Refer a friend page.', f: [['name', 'text', 'Campaign name'], ['headline', 'text', 'Headline'], ['image', 'text', 'Banner image', 'An uploaded image path or an https link (optional).'], ['support', 'text', 'Support contact', 'Email or WhatsApp number, shown on the page and in emails.'], ['terms', 'area', 'Full terms and conditions', 'Required to activate (at least 40 characters). Shown on the referral page.']] },
+  { t: 'Campaign', n: 'What customers see on the Refer a friend page.', f: [['name', 'text', 'Campaign name'], ['headline', 'text', 'Headline'], ['image', 'text', 'Banner image', 'Upload a picture from your device, or paste an https link. Optional. Shown at the top of the Refer a friend page.'], ['support', 'text', 'Support contact', 'Email or WhatsApp number, shown on the page and in emails.'], ['terms', 'area', 'Full terms and conditions', 'Required to activate (at least 40 characters). Shown on the referral page.']] },
   { t: 'Friend offer', n: 'The discount a new customer gets with a code.', f: [['friend.type', 'sel:fixed,percent', 'Discount type'], ['friend.value', 'int', 'Discount value', 'Naira for fixed, or a percentage (1 to 100).'], ['friend.max', 'int', 'Maximum discount (\u20a6)', 'For percentage offers. 0 means no cap.'], ['min_spend', 'int', 'Minimum spend (\u20a6)', 'On qualifying products. 0 means none.'], ['newOnly', 'bool', 'First-time customers only'], ['onlineOnly', 'bool', 'Online payments only (no transfer, pay on delivery or DM)'], ['regions', 'text', 'Eligible delivery states', 'Comma separated. Blank means everywhere.'], ['excl_products', 'text', 'Excluded product IDs', 'Comma separated.'], ['excl_categories', 'text', 'Excluded categories', 'Comma separated.']] },
   { t: 'Referrer reward', n: 'Store credit earned by the person who shared the code.', f: [['referrer.value', 'int', 'Credit per successful referral (\u20a6)'], ['referrer.expiry_days', 'int', 'Credit expires after (days)', '0 means it never expires.'], ['who', 'sel:any,paid', 'Who can refer', 'any = every account. paid = after a first paid order.'], ['max_per_referrer', 'int', 'Rewarded referrals per person', '0 means no limit.'], ['cap_total', 'int', 'Programme budget (\u20a6)', 'Discounts plus rewards. 0 means no cap.'], ['credit_with_discount', 'bool', 'Allow store credit on an order that also uses a referral offer']] },
   { t: 'Attribution and qualification', n: 'How a visit becomes a referral, and when a reward is released.', f: [['attr', 'sel:last,first', 'Which link counts', 'last = most recent link wins. first = first link wins.'], ['window_days', 'int', 'Link stays valid (days)'], ['codeRequired', 'bool', 'Friend must type the code (the link alone is not enough)'], ['buffer_days', 'int', 'Return period (days)', 'Days after payment before the reward becomes available.'], ['max_per_day', 'int', 'Review above N referrals per person per day', 'Extra referrals are held for your review.']] },
@@ -4151,14 +4199,30 @@ function paneSettings() {
     const v = get(c, p), id = 'rf-' + p.replace(/\./g, '-'), hint = h ? `<small>${E(h)}</small>` : '';
     if (t === 'bool') return `<div class="full"><label class="rfa-chk"><input type="checkbox" id="${id}" ${v ? 'checked' : ''}><span>${E(l)}</span></label></div>`;
     const k = `<label class="f" for="${id}">${E(l)}</label>`;
+    if (p === 'image') return `<div class="full">${k}<div style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center"><input id="${id}" type="text" class="adm-in" style="flex:1;min-width:12rem" value="${E(v)}" placeholder="Upload a picture or paste an https link"><label class="rfa-btn alt" style="cursor:pointer"><i class="fa-solid fa-upload"></i> Upload image<input type="file" id="rf-image-file" accept="image/jpeg,image/png,image/webp,image/gif" class="sr-only"></label><button type="button" class="rfa-btn alt" id="rf-image-clear">Remove</button></div><img id="rf-image-prev" alt="Banner preview" src="${E(v)}" style="margin-top:.6rem;max-height:9rem;max-width:100%;border-radius:.7rem;${v ? '' : 'display:none'}">${hint}</div>`;
     if (t === 'area') return `<div class="full">${k}<textarea id="${id}" rows="${p === 'terms' ? 7 : 3}" class="adm-in">${E(v)}</textarea>${hint}</div>`;
     if (t.startsWith('sel')) return `<div>${k}<select id="${id}" class="adm-in">${t.slice(4).split(',').map(o => `<option ${o === v ? 'selected' : ''}>${o}</option>`).join('')}</select>${hint}</div>`;
     return `<div>${k}<input id="${id}" ${t === 'int' ? 'type="number" min="0" step="1"' : t === 'dt' ? 'type="datetime-local"' : 'type="text"'} class="adm-in" value="${E(v)}">${hint}</div>`;
   };
   $('rfa-pane').innerHTML = `<form id="rf-form" novalidate>${AD.state === 'live' || AD.state === 'scheduled' ? '<div class="rfa-warn">The programme is running. Saved changes apply to new orders straight away. Orders already placed keep the offer they were given.</div>' : ''}
+  <div class="rfa-card"><h2>Move or update settings from a file</h2><p class="rfa-note">Download these campaign settings, edit them or reuse them on another store, then upload the file. Uploading only fills in this form: nothing changes until you press Save as new version.</p><button type="button" class="rfa-btn alt" id="rf-cfg-dl"><i class="fa-solid fa-download"></i> Download settings (.json)</button> <label class="rfa-btn alt" style="cursor:pointer"><i class="fa-solid fa-upload"></i> Upload settings (.json)<input type="file" id="rf-cfg-up" accept=".json,application/json" class="sr-only"></label></div>
   ${FIELDS.map(g => `<div class="rfa-card"><h2>${E(g.t)}</h2><p class="rfa-note">${E(g.n)}</p><div class="rfa-form">${g.f.map(inp).join('')}</div></div>`).join('')}
   <div class="rfa-card"><h2>Save changes</h2><p class="rfa-note">Every save creates a new numbered version and an audit log entry. Previous versions: ${AD.versions.length ? AD.versions.slice(0, 5).map(v => `#${v.id} (${fmt(v.created)})`).join(', ') : 'none yet'}.</p>
   <label class="f" for="rf-reason" style="display:block;font-size:.72rem;font-weight:600;margin-bottom:.25rem">Reason for this change</label><input id="rf-reason" class="adm-in" maxlength="300" placeholder="For example: first campaign setup"><p id="rf-ferr" role="alert" class="rfa-muted" style="color:#9B1C1C;min-height:1.1rem;margin:.4rem 0"></p><button type="submit" class="rfa-btn">Save as new version</button></div></form>`;
+  const collect = () => { const cfg = JSON.parse(JSON.stringify(c)); FIELDS.forEach(g => g.f.forEach(([p, t]) => { const el = $('rf-' + p.replace(/\./g, '-')); if (el) put(cfg, p, t === 'bool' ? el.checked : t === 'int' ? Math.max(0, parseInt(el.value, 10) || 0) : el.value.trim()); })); return cfg; };
+  const imgIn = $('rf-image'), imgPrev = $('rf-image-prev'), showImg = () => { const v = imgIn.value.trim(); imgPrev.src = v; imgPrev.style.display = v ? '' : 'none'; };
+  imgIn.addEventListener('input', showImg); $('rf-image-clear').onclick = () => { imgIn.value = ''; showImg(); };
+  $('rf-image-file').onchange = async ev => {
+    const f = ev.target.files[0]; ev.target.value = ''; if (!f) return; if (!/\.(jpe?g|png|webp|gif)$/i.test(f.name)) return toast('Choose a JPG, PNG, WebP or GIF picture.'); toast('Uploading image\u2026');
+    try { const r = await realFetch(BASE + '/api/admin/upload?name=' + encodeURIComponent(f.name), { method: 'POST', headers: { Authorization: 'Bearer ' + (sessionStorage.getItem(AT) || '') }, body: f }), j = await r.json().catch(() => ({})); if (!r.ok) { const e = new Error(j.error || 'Upload failed'); e.status = r.status; throw e; } imgIn.value = j.url; showImg(); toast('Image uploaded. Press Save as new version to publish it.'); } catch (e) { fail(e); }
+  };
+  $('rf-cfg-dl').onclick = () => { const a = document.createElement('a'), u = URL.createObjectURL(new Blob([JSON.stringify({ type: 'skinsentials22-referral-settings', version: 1, exported: new Date().toISOString(), cfg: collect() }, null, 1)], { type: 'application/json' })); a.href = u; a.download = 'referral-settings-' + new Date().toISOString().slice(0, 10) + '.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 3000); };
+  $('rf-cfg-up').onchange = async ev => {
+    const f = ev.target.files[0]; ev.target.value = ''; if (!f) return; let j; try { j = JSON.parse(await f.text()); } catch (e) { return toast('That file is not valid settings JSON.'); }
+    const src = j && typeof j === 'object' ? (j.cfg || j.config || j) : null; if (!src || typeof src !== 'object') return toast('That file has no referral settings.');
+    let n = 0; FIELDS.forEach(g => g.f.forEach(([p, t]) => { const v = get(src, p), el = $('rf-' + p.replace(/\./g, '-')); if (v === undefined || v === null || !el) return; if (t === 'bool') el.checked = !!v; else { if (el.tagName === 'SELECT' && ![...el.options].some(o => o.value === String(v))) return; el.value = String(v); } n++; }));
+    if (!n) return toast('No referral settings were found in that file.'); showImg(); toast(n + ' settings loaded into the form. Review them, add a reason and press Save as new version.');
+  };
   $('rf-form').onsubmit = async e => {
     e.preventDefault(); const err = m => { $('rf-ferr').textContent = m; return false; }, cfg = JSON.parse(JSON.stringify(c));
     FIELDS.forEach(g => g.f.forEach(([p, t]) => { const el = $('rf-' + p.replace(/\./g, '-')); if (el) put(cfg, p, t === 'bool' ? el.checked : t === 'int' ? Math.max(0, parseInt(el.value, 10) || 0) : el.value.trim()); }));
@@ -5063,7 +5127,7 @@ const redraw = () => { try { renderHomeFeatured(); } catch (e) {} };
 async function pull() {   // keeps an open page up to date by itself: new products, new best sellers, stock changes
   if (document.hidden || (typeof adminAuthed !== 'undefined' && adminAuthed)) return;
   try {
-    const r = await api('/products'); window.SK_FEATURED = r.featured || null;
+    const r = await api('/products'); window.SK_FEATURED = r.featured || null; window.SK_SALES = r.sales || {}; window.SK_PTS = r.pts || {};
     if (r.products.length && r.rev !== window.SK_REV) { PRODUCTS.splice(0, PRODUCTS.length, ...r.products); window.SK_REV = r.rev; try { renderCatalog(PRODUCTS); } catch (e) {} }
     redraw();
   } catch (e) {}
@@ -5161,7 +5225,7 @@ async function load(msg) {
   <div class="grid lg:grid-cols-2 gap-4 mb-5">
     <div class="${card} p-4 space-y-3"><h2 class="font-semibold text-sm text-brand-navy">1. Back up now</h2><p class="text-xs text-brand-slate">Saves a complete copy on the server in one second. Download it to your computer or Google Drive as well, because a copy on the same server is lost if the server is lost.</p>
       <p class="text-xs text-brand-slate">Right now: <b>${c.products}</b> products, <b>${c.posts}</b> posts, <b>${c.orders}</b> orders, <b>${c.customers}</b> customers.${last ? ` Last backup: <b>${when(last.at)}</b>.` : ''}</p>
-      <div class="flex flex-wrap gap-2"><button type="button" class="${btn}" id="bk-now">Back up now</button><button type="button" class="${btn2}" id="bk-nowdl">Back up and download</button></div></div>
+      <div class="flex flex-wrap gap-2"><button type="button" class="${btn}" id="bk-now">Back up now</button><button type="button" class="${btn2}" id="bk-nowdl">Back up and download</button><label class="${btn2} cursor-pointer"><i class="fa-solid fa-upload mr-1"></i>Upload a backup (.db)<input id="bk-up" type="file" accept=".db,application/octet-stream" class="sr-only"></label></div><p class="text-[11px] text-brand-slate">Have a backup file from before? Upload the .db file and it joins the list below, ready to restore.</p></div>
     <div class="${card} p-4 space-y-3"><h2 class="font-semibold text-sm text-brand-navy">2. Safe update</h2><p class="text-xs text-brand-slate">Before you replace <code>server.js</code> or <code>public/index.html</code>: press the button, then update only those two files and restart. Never replace or delete the <code>data</code> folder.</p>
       <div class="flex flex-wrap gap-2"><button type="button" class="${btn}" id="bk-prep">Back up and get ready to update</button>${p ? `<button type="button" class="${btn2}" id="bk-check">Check after update</button>` : ''}</div>${check}</div></div>
   <h2 class="font-semibold text-sm text-brand-navy mb-2">Your backups</h2>
@@ -5173,6 +5237,8 @@ async function load(msg) {
   act('bk-nowdl', async () => { const r = await api('/admin/backups', { method: 'POST', body: { kind: 'manual' } }); await dl(r.backup.name); toast('Backup saved and downloaded'); await load('Backup saved and downloaded. Keep the file somewhere safe.'); });
   act('bk-prep', async () => { const r = await api('/admin/backups', { method: 'POST', body: { kind: 'update' } }); toast('Ready to update'); await load(`Ready. Backup saved (${r.backup.products} products, ${r.backup.posts} posts, ${r.backup.orders} orders). Now replace server.js and public/index.html, restart the server, then come back and press Check after update.`); });
   act('bk-check', async () => { await load('Checked just now.'); });
+  const upf = $('bk-up'); if (upf) upf.onchange = async ev => { const f = ev.target.files[0]; ev.target.value = ''; if (!f) return; if (!/\.db$/i.test(f.name)) return toast('Choose a .db backup file.'); const mm = $('bk-msg'); if (mm) mm.textContent = 'Uploading ' + f.name + '\u2026';
+    try { const r = await realFetch(BASE + '/api/admin/backups/upload', { method: 'POST', headers: { Authorization: 'Bearer ' + (sessionStorage.getItem(AT) || '') }, body: f }), j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(r.status === 401 ? 'Your admin session ended. Please sign in again.' : (j.error || 'Upload failed')); toast('Backup uploaded'); await load(`Uploaded. It is now in the list below (${j.backup.products} products, ${j.backup.posts} posts, ${j.backup.orders} orders). Press "Restore products and posts" on its row to use it.`); } catch (e) { if (mm) mm.textContent = ''; toast(e.message); } };
   b.querySelectorAll('[data-dl]').forEach(x => x.onclick = async () => { x.disabled = true; try { await dl(x.dataset.dl); } catch (e) { toast(e.message); } finally { x.disabled = false; } });
   b.querySelectorAll('[data-restore]').forEach(x => x.onclick = async () => {
     const n = D.backups.find(y => y.name === x.dataset.restore), t = n ? `${n.products} products and ${n.posts} posts from ${when(n.at)}` : 'this backup';
@@ -5188,5 +5254,448 @@ if (document.readyState === 'complete') boot(); else window.addEventListener('lo
 })();
 </script>
 
+<script id="notify-layer-js">
+/* SKINSENTIALS22 customer notifications: an unread badge on the account icon and a Notifications tab in the profile.
+   Everything shown comes from the server (GET /api/notifications). Delete this whole script block to remove the interface. */
+(function () {
+'use strict';
+const BASE = window.SK_API_BASE || '', TK = 'sk22tok';
+const $ = id => document.getElementById(id), E = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const tok = () => { try { return localStorage.getItem(TK) || ''; } catch (e) { return ''; } };
+async function api(path, o) {
+  o = o || {}; const h = {}; if (o.body) h['Content-Type'] = 'application/json'; const t = tok(); if (t) h.Authorization = 'Bearer ' + t;
+  const r = await fetch(BASE + '/api' + path, { method: o.method || 'GET', headers: h, body: o.body ? JSON.stringify(o.body) : undefined });
+  const j = await r.json().catch(() => ({})); if (!r.ok) { const e = new Error(j.error || 'Something went wrong'); e.status = r.status; throw e; } return j;
+}
+let LIST = [], UNREAD = 0, LOADED = false;
+const ICON = { welcome: 'fa-heart', order: 'fa-box', payment: 'fa-receipt', referral: 'fa-user-group', glow: 'fa-star', security: 'fa-shield-halved' };
+const ago = t => { const s = Math.max(0, (Date.now() - t) / 1000); if (s < 60) return 'Just now'; if (s < 3600) return Math.floor(s / 60) + ' min ago'; if (s < 86400) return Math.floor(s / 3600) + ' hr ago'; if (s < 604800) return Math.floor(s / 86400) + (s >= 172800 ? ' days ago' : ' day ago'); return new Date(t).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' }); };
+const paneOpen = () => !!document.querySelector('#ac-pane [data-notif-pane]');
+
+/* red number on the account icon in the header */
+function badge() {
+  const b = document.querySelector('header button[aria-label="Account"]'); if (!b) return;
+  b.classList.add('relative'); let d = b.querySelector('[data-notif-badge]');
+  if (!UNREAD) { if (d) d.remove(); return; }
+  if (!d) { d = document.createElement('span'); d.setAttribute('data-notif-badge', '1'); d.className = 'absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold leading-4 text-center pointer-events-none'; b.appendChild(d); }
+  d.textContent = UNREAD > 9 ? '9+' : String(UNREAD);
+}
+/* same number on the tab */
+function pill() {
+  const t = document.querySelector('[data-notif-tab]'); if (!t) return; let p = t.querySelector('[data-notif-pill]');
+  if (!UNREAD) { if (p) p.remove(); return; }
+  if (!p) { p = document.createElement('span'); p.setAttribute('data-notif-pill', '1'); p.className = 'ml-1 inline-block min-w-[16px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold leading-4'; t.appendChild(p); }
+  p.textContent = UNREAD > 9 ? '9+' : String(UNREAD);
+}
+async function load() {
+  if (!tok()) { LIST = []; UNREAD = 0; LOADED = false; badge(); pill(); return; }
+  try { const r = await api('/notifications'); LIST = r.notifications || []; UNREAD = r.unread || 0; LOADED = true; }
+  catch (e) { if (e.status === 401) { LIST = []; UNREAD = 0; } }
+  badge(); pill(); if (paneOpen()) draw();
+}
+const item = (n, fresh) => { const tag = n.link ? 'button type="button" data-notif-go="' + E(n.link) + '"' : 'div', end = n.link ? 'button' : 'div';
+  return `<li><${tag} class="w-full text-left flex gap-3 border ${fresh ? 'border-brand-blue bg-brand-mist' : 'border-brand-stone'} rounded-xl p-3"><span class="shrink-0 w-8 h-8 rounded-full bg-brand-navy/10 text-brand-navy flex items-center justify-center"><i class="fa-solid ${ICON[n.type] || 'fa-bell'} text-xs" aria-hidden="true"></i></span><span class="min-w-0 flex-1"><span class="flex justify-between gap-2"><b class="text-xs text-brand-navy">${E(n.title)}</b><span class="text-[10px] text-brand-slate whitespace-nowrap">${E(ago(n.created))}</span></span><span class="block text-xs text-brand-slate mt-0.5">${E(n.body)}</span></span></${end}></li>`; };
+function draw() {
+  const pane = $('ac-pane'); if (!pane) return;
+  const fresh = new Set(LIST.filter(n => !n.seen).map(n => n.id));
+  pane.innerHTML = '<div data-notif-pane="1">' + (LIST.length
+    ? `<div class="flex justify-between items-center mb-3"><span class="text-[11px] text-brand-slate">${LIST.length} notification${LIST.length > 1 ? 's' : ''}</span><button type="button" data-notif-clear class="text-[11px] font-semibold text-brand-slate hover:text-red-600">Clear all</button></div><ul class="space-y-2">${LIST.map(n => item(n, fresh.has(n.id))).join('')}</ul>`
+    : '<div class="text-center py-8"><i class="fa-regular fa-bell text-3xl text-brand-stone mb-2" aria-hidden="true"></i><p class="text-sm font-semibold text-brand-navy">No notifications yet</p><p class="text-xs text-brand-slate mt-1">Order updates, payment confirmations and rewards will appear here.</p></div>') + '</div>';
+  pane.querySelectorAll('[data-notif-go]').forEach(b => { b.onclick = () => go(b.getAttribute('data-notif-go')); });
+  const c = pane.querySelector('[data-notif-clear]'); if (c) c.onclick = clearAll;
+  if (fresh.size) { LIST.forEach(n => { n.seen = true; }); UNREAD = 0; badge(); pill(); api('/notifications/read', { method: 'POST', body: {} }).catch(() => {}); }   // seeing them marks them read
+}
+function go(l) {
+  if (l === 'orders' && window.accTab) return window.accTab('orders');
+  if (l === 'referral' && window.refOpenTab) return window.refOpenTab();
+  if (l === 'glow') { const b = document.querySelector('[data-glow-tab]'); if (b) b.click(); }
+}
+async function clearAll() {
+  if (!confirm('Clear all your notifications?')) return;
+  try { await api('/notifications/clear', { method: 'POST', body: {} }); LIST = []; UNREAD = 0; badge(); pill(); draw(); } catch (e) { try { showToast(e.message); } catch (x) {} }
+}
+function tabBtn() {
+  const bar = document.querySelector('#acct-body .overflow-x-auto'); if (!bar || bar.querySelector('[data-notif-tab]')) return;
+  const html = '<button type="button" data-notif-tab="1" class="flex-1 whitespace-nowrap px-2 py-2 text-xs font-semibold border-b-2 border-transparent text-brand-slate hover:text-brand-navy">Notifications</button>', first = bar.firstElementChild;
+  if (first) first.insertAdjacentHTML('afterend', html); else bar.insertAdjacentHTML('beforeend', html);
+  bar.querySelector('[data-notif-tab]').onclick = () => {
+    bar.querySelectorAll('button').forEach(b => { const on = b.hasAttribute('data-notif-tab'); b.classList.toggle('border-brand-blue', on); b.classList.toggle('text-brand-blue', on); b.classList.toggle('border-transparent', !on); b.classList.toggle('text-brand-slate', !on); });
+    draw(); load();
+  };
+  pill(); if (!LOADED) load();
+}
+function wire() {
+  const oa = window.openAccount; if (typeof oa === 'function') window.openAccount = function () { const r = oa.apply(this, arguments); load(); return r; };
+  const out = window.accOut; if (typeof out === 'function') window.accOut = function () { const r = out.apply(this, arguments); LIST = []; UNREAD = 0; LOADED = false; badge(); return r; };
+  const ab = $('acct-body'); if (ab) new MutationObserver(tabBtn).observe(ab, { childList: true });
+  load(); setInterval(() => { if (!document.hidden) load(); }, 60000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
+}
+if (document.readyState === 'complete') wire(); else window.addEventListener('load', wire);
+})();
+</script>
+
+<script id="general-settings-js">
+/* SKINSENTIALS22 Admin > General settings, plus the "upload" that goes with each "download":
+   store details, social links, website address (domain), logo / favicon / share picture, search and tracking tags,
+   email and alert channels, maintenance mode, the app download page, legal page text,
+   restore from a .json or .db backup file, newsletter CSV import, and settings files you can download, edit and upload again.
+   Everything saved here lives on the server (/api/admin/general and /api/admin/comms). Delete this whole script block to remove the page. */
+(function () {
+'use strict';
+const BASE = window.SK_API_BASE || '', AT = 'sk22adm';
+const $ = id => document.getElementById(id), E = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const toast = m => { try { showToast(m); } catch (e) { alert(m); } };
+const realFetch = window.fetch.bind(window);
+const card = 'bg-white border border-brand-stone rounded-xl', btn = 'bg-brand-navy hover:bg-brand-blue text-white text-xs font-semibold px-5 py-2.5 rounded-full disabled:opacity-40', btn2 = 'border border-brand-stone text-xs font-semibold px-4 py-2 rounded-full hover:bg-brand-mist cursor-pointer inline-block';
+async function api(path, o) {
+  o = o || {}; const h = { Authorization: 'Bearer ' + (sessionStorage.getItem(AT) || '') }; if (o.body) h['Content-Type'] = 'application/json';
+  let r; try { r = await realFetch(BASE + '/api' + path, { method: o.method || 'GET', headers: h, body: o.body ? JSON.stringify(o.body) : undefined }); } catch (e) { throw new Error('Cannot reach the server. Check your connection.'); }
+  const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(r.status === 401 ? 'Your admin session ended. Please sign in again.' : (j.error || 'Something went wrong')); return j;
+}
+async function upload(file, kind) {
+  let r; try { r = await realFetch(BASE + (kind === 'file' ? '/api/admin/upload-file' : '/api/admin/upload') + '?name=' + encodeURIComponent(file.name), { method: 'POST', headers: { Authorization: 'Bearer ' + (sessionStorage.getItem(AT) || '') }, body: file }); } catch (e) { throw new Error('Cannot reach the server. Check your connection.'); }
+  const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(r.status === 401 ? 'Your admin session ended. Please sign in again.' : (j.error || 'Upload failed')); return j.url;
+}
+const LEGAL = [['terms', 'Terms & Conditions'], ['privacy', 'Privacy Policy'], ['shipping', 'Shipping & Delivery'], ['returns', 'Returns & Refunds'], ['cancellation', 'Cancellation'], ['payments', 'Payments'], ['cookies', 'Cookies'], ['safety', 'Product Safety'], ['promos', 'Gift Cards & Promos'], ['referral', 'Referral Programme'], ['contact', 'Contact & Complaints']];
+const KEYS = ['store_name', 'tagline', 'legal_name', 'support_email', 'support_phone', 'whatsapp', 'instagram', 'address', 'hours', 'privacy_email', 'cutoff_text', 'facebook', 'tiktok', 'youtube', 'twitter', 'site_url', 'logo', 'favicon', 'og_image', 'meta_title', 'meta_desc', 'ga_id', 'fb_pixel', 'gsc_file', 'gsc_meta', 'mail_name', 'mail_reply_to', 'mail_footer', 'maintenance_on', 'maintenance_title', 'maintenance_msg', 'maintenance_until', 'app_headline', 'app_text', 'app_ios', 'app_android', 'app_apk', 'app_image', 'app_qr', 'legal_effective', 'return_days', 'refund_days', 'damage_hours', 'ack_days', 'resolve_days', ...LEGAL.map(l => 'legal_' + l[0])];
+const COMMS_SECRETS = ['mail_key', 'tg_token', 'webhook'], COMMS_PLAIN = ['mail_from', 'admin_email', 'tg_chat'];
+const LAB = 'block text-[11px] font-semibold text-brand-navy mb-1';
+const hint = h => h ? `<p class="text-[11px] text-brand-slate mt-1">${h}</p>` : '';
+const txt = (key, label, h, o) => { o = o || {}; return `<div class="${o.full ? 'sm:col-span-2' : ''}"><label class="${LAB}" for="gs-${key}">${E(label)}</label>${o.area ? `<textarea id="gs-${key}" rows="${o.area}" class="adm-in" maxlength="${o.max || 400}" placeholder="${E(o.ph || '')}"></textarea>` : `<input id="gs-${key}" class="adm-in" type="${o.type || 'text'}" maxlength="${o.max || 300}" placeholder="${E(o.ph || '')}" autocomplete="off">`}${hint(h)}</div>`; };
+const fld = (key, label, kind, h) => `<div><label class="${LAB}" for="gs-${key}">${E(label)}</label>
+  <div class="flex flex-wrap gap-2 items-center"><input id="gs-${key}" class="adm-in flex-1 min-w-[12rem]" placeholder="${kind === 'link' ? 'https://' : 'Upload a file or paste an https link'}">
+  ${kind === 'link' ? '' : `<label class="${btn2}"><i class="fa-solid fa-upload mr-1"></i>Upload${kind === 'file' ? ' file' : ' picture'}<input type="file" data-up="${key}" data-kind="${kind}" class="sr-only" ${kind === 'image' ? 'accept="image/jpeg,image/png,image/webp,image/gif"' : 'accept=".apk,.pdf,.zip,.xlsx,.csv,.txt"'}></label><button type="button" class="${btn2}" data-clear="${key}">Remove</button>`}</div>
+  ${kind === 'image' ? `<img id="gs-${key}-prev" alt="" class="mt-2 max-h-24 max-w-full rounded-lg border border-brand-stone bg-white" style="display:none">` : ''}${kind === 'file' ? `<a id="gs-${key}-prev" class="text-[11px] text-brand-blue underline mt-1 inline-block" style="display:none" target="_blank" rel="noopener"></a>` : ''}${hint(h)}</div>`;
+const sec = (title, desc, inner, grid) => `<div class="${card} p-5 space-y-4"><div><h2 class="font-semibold text-sm text-brand-navy">${title}</h2>${desc ? `<p class="text-[11px] text-brand-slate mt-1">${desc}</p>` : ''}</div>${grid ? `<div class="grid sm:grid-cols-2 gap-4">${inner}</div>` : inner}</div>`;
+let SI = { site: '', siteDefault: '', siteFromEnv: false }, CM = null;
+
+/* ---------- what visitors see (runs on the public site too) ---------- */
+function applyMaint(g) {
+  const o = $('maint-overlay'), bar = $('maint-bar'), admin = !!sessionStorage.getItem(AT) || location.hash === '#admin' || document.body.classList.contains('admin-mode');
+  if (!g || g.maintenance_on !== '1') { if (o) o.remove(); if (bar) bar.remove(); return; }
+  if (admin) { if (o) o.remove(); if (!bar && !document.body.classList.contains('admin-mode')) document.body.insertAdjacentHTML('beforeend', '<div id="maint-bar" style="position:fixed;left:0;right:0;bottom:0;z-index:9998;background:#b91c1c;color:#fff;font-size:12px;text-align:center;padding:6px 10px">Maintenance mode is ON: visitors see a \u201cback soon\u201d page. You can still see the shop because you are signed in. Turn it off in Admin \u203a General settings.</div>'); else if (bar && document.body.classList.contains('admin-mode')) bar.remove(); return; }
+  if (bar) bar.remove(); if (o) return;
+  document.body.insertAdjacentHTML('beforeend', `<div id="maint-overlay" role="alert" style="position:fixed;inset:0;z-index:9999;background:#0A111E;color:#fff;display:flex;align-items:center;justify-content:center;padding:2rem;text-align:center"><div style="max-width:30rem"><div style="font-size:2.2rem;margin-bottom:.8rem"><i class="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i></div><h1 style="font-family:Georgia,serif;font-size:1.9rem;font-weight:700;margin:0 0 .7rem">${E(g.maintenance_title || 'We will be right back')}</h1><p style="color:#cbd5e1;line-height:1.6;margin:0">${E(g.maintenance_msg || 'We are updating the store. Please check back soon.')}</p>${g.maintenance_until ? `<p style="margin-top:.9rem;font-weight:600">${E(g.maintenance_until)}</p>` : ''}${g.whatsapp ? `<p style="margin-top:1.2rem"><a href="https://wa.me/${E(g.whatsapp)}" target="_blank" rel="noopener" style="color:#fff;text-decoration:underline">Message us on WhatsApp</a></p>` : ''}<p style="margin-top:2rem"><a href="#admin" id="maint-admin" style="color:#64748b;font-size:11px">Admin</a></p></div></div>`);
+  const a = $('maint-admin'); if (a) a.onclick = ev => { ev.preventDefault(); const m = $('maint-overlay'); if (m) m.remove(); try { navigateTo('admin'); } catch (e) {} };
+}
+function applyFooter(g) {
+  const set = (id, fn) => { const el = $(id); if (el) fn(el); };
+  set('ft-tag', el => { if (!el.dataset.orig) el.dataset.orig = el.textContent; el.textContent = g.tagline || el.dataset.orig; });
+  set('ft-name', el => { if (!el.dataset.orig) el.dataset.orig = el.innerHTML; if (g.store_name) el.textContent = g.store_name; else el.innerHTML = el.dataset.orig; });
+  if (g.support_email) set('ft-email', el => { el.href = 'mailto:' + g.support_email; el.innerHTML = '<i class="fa-solid fa-envelope w-4"></i>' + E(g.support_email); });
+  const wa = String(g.whatsapp || '').replace(/\D/g, '');
+  if (wa) document.querySelectorAll('a[href*="wa.me/"]').forEach(a => { a.href = a.href.replace(/wa\.me\/\d+/, 'wa.me/' + wa); });
+  if (wa || g.support_phone) set('ft-wa', el => { const shown = g.support_phone || (wa.startsWith('234') ? '0' + wa.slice(3) : wa); el.innerHTML = '<i class="fa-brands fa-whatsapp w-4"></i>' + E(shown); });
+  if (g.instagram) set('ft-ig', el => { el.href = 'https://www.instagram.com/' + g.instagram; el.innerHTML = '<i class="fa-brands fa-instagram w-4"></i>@' + E(g.instagram); });
+  const handle = u => '@' + String(u).replace(/[?#].*$/, '').split('/').filter(Boolean).pop().replace(/^@/, '');
+  if (g.tiktok) set('ft-tt', el => { el.href = g.tiktok; el.innerHTML = '<i class="fa-brands fa-tiktok w-4"></i>' + E(handle(g.tiktok)); });
+  const list = $('ft-tt') && $('ft-tt').closest('ul'); if (!list) return;
+  list.querySelectorAll('[data-gs-extra]').forEach(x => x.remove());
+  const add = (cls, label, href) => list.insertAdjacentHTML('beforeend', `<li data-gs-extra="1"><a href="${E(href)}" target="_blank" rel="noopener" class="hover:text-white flex items-center gap-2"><i class="${cls} w-4"></i>${E(label)}</a></li>`);
+  if (g.facebook) add('fa-brands fa-facebook', 'Facebook', g.facebook); if (g.youtube) add('fa-brands fa-youtube', 'YouTube', g.youtube); if (g.twitter) add('fa-brands fa-x-twitter', 'X (Twitter)', g.twitter);
+  if (g.address) list.insertAdjacentHTML('beforeend', `<li data-gs-extra="1" class="flex items-start gap-2"><i class="fa-solid fa-location-dot w-4 mt-0.5"></i><span>${E(g.address)}</span></li>`);
+  if (g.hours) list.insertAdjacentHTML('beforeend', `<li data-gs-extra="1" class="flex items-start gap-2"><i class="fa-regular fa-clock w-4 mt-0.5"></i><span>${E(g.hours)}</span></li>`);
+}
+function applyGeneral(g) {
+  if (!g) return; window.__skGeneral = g;
+  if (g.logo) document.querySelectorAll('img[data-logo]').forEach(i => { i.src = g.logo; });
+  const fv = $('favicon'); if (fv && (g.favicon || g.logo)) fv.href = g.favicon || g.logo;
+  const t = $('app-title'); if (t) { if (!t.dataset.orig) t.dataset.orig = t.innerHTML; if (g.app_headline) t.textContent = g.app_headline; else t.innerHTML = t.dataset.orig; }
+  const p = $('app-text'); if (p) { if (!p.dataset.orig) p.dataset.orig = p.textContent; p.textContent = g.app_text || p.dataset.orig; }
+  [['app-ios', g.app_ios], ['app-and', g.app_android]].forEach(([id, url]) => { const b = $(id); if (!b) return; if (!b._orig) b._orig = b.onclick; b.onclick = url ? () => { window.open(url, '_blank', 'noopener'); } : b._orig; });
+  const a = $('app-apk'); if (a) { if (g.app_apk) { a.href = g.app_apk; a.style.display = 'flex'; } else a.style.display = 'none'; }
+  const m = $('app-mock'); if (m) { if (m._orig == null) m._orig = m.innerHTML; m.innerHTML = g.app_image ? `<img src="${E(g.app_image)}" alt="App preview" class="absolute inset-0 w-full h-full object-cover">` : m._orig; }
+  const old = $('app-qr'); if (old) old.remove();
+  const row = $('app-ios') && $('app-ios').parentElement; if (g.app_qr && row) row.insertAdjacentHTML('afterend', `<div id="app-qr" class="flex items-center gap-4 pt-2"><img src="${E(g.app_qr)}" alt="QR code to download the app" class="w-28 h-28 rounded-xl bg-white p-2 object-contain"><p class="text-xs text-gray-300 max-w-[12rem]">Scan with your phone camera to get the app.</p></div>`);
+  applyFooter(g); applyMaint(g);
+}
+async function pub() { try { const r = await realFetch(BASE + '/api/config'), j = await r.json(); if (j && j.general) applyGeneral(j.general); } catch (e) {} }
+
+/* ---------- admin page ---------- */
+function adminInit() {
+  if (!$('tab-orders') || $('tab-general')) return;
+  const nav = '<button data-tab="general" onclick="adminTab(\'general\')" class="adm-tab-btn text-left text-sm px-3 py-2 rounded-lg text-gray-300 hover:bg-white/10"><i class="fa-solid fa-sliders w-5"></i>General settings</button>';
+  const sb = document.querySelector('[data-tab=settings]'), ob = document.querySelector('[data-tab=orders]');
+  if (sb) sb.insertAdjacentHTML('beforebegin', nav); else if (ob) ob.insertAdjacentHTML('afterend', nav); else return;
+  $('tab-orders').parentElement.insertAdjacentHTML('beforeend', '<div id="tab-general" class="admin-tab hidden"><h1 class="font-serif text-3xl font-bold text-brand-navy mb-1">General settings</h1><p class="text-xs text-brand-slate mb-4">Store details, address, pictures, tracking, email and alerts, maintenance mode, the app page and legal text. Every file here can be uploaded from your device.</p><div id="gs-body"><p class="text-sm text-brand-slate">Loading\u2026</p></div></div>');
+}
+const val = k => { const el = $('gs-' + k); return el ? (el.type === 'checkbox' ? (el.checked ? '1' : '') : el.value.trim()) : ''; };
+function prevAll() {
+  ['logo', 'favicon', 'og_image', 'app_image', 'app_qr'].forEach(k => { const im = $('gs-' + k + '-prev'); if (!im) return; const v = val(k); im.src = v; im.style.display = v ? '' : 'none'; });
+  const a = $('gs-app_apk-prev'); if (a) { const v = val('app_apk'); a.href = v || '#'; a.textContent = v ? 'Current file: ' + v : ''; a.style.display = v ? '' : 'none'; }
+  LEGAL.forEach(l => { const s = $('gs-legal-state-' + l[0]); if (s) s.textContent = val('legal_' + l[0]) ? 'Your own text is shown on the website' : 'The built-in text is shown'; });
+}
+function fill(g) { KEYS.forEach(k => { const el = $('gs-' + k); if (!el || g[k] == null) return; if (el.type === 'checkbox') el.checked = g[k] === '1' || g[k] === true; else el.value = String(g[k]); }); prevAll(); }
+const collect = () => Object.fromEntries(KEYS.map(k => [k, val(k)]));
+const note = m => { const n = $('gs-msg'); if (n) n.textContent = m || ''; };
+const secretField = (k, label, h) => { const f = (CM && CM.fields[k]) || {}; return `<div><label class="${LAB}" for="gs-c-${k}">${E(label)} ${f.set ? `<span class="font-normal text-green-700">\u2713 ${f.source === 'env' ? 'set in the server file (.env)' : 'saved here'} (${E(f.hint)})</span>` : '<span class="font-normal text-brand-slate">not set</span>'}</label><input id="gs-c-${k}" type="password" class="adm-in" autocomplete="new-password" placeholder="${f.set ? 'Leave empty to keep the saved one, or paste a new one' : 'Paste it here'}">${f.source === 'admin' ? `<label class="text-[11px] text-brand-slate mt-1 flex items-center gap-1"><input type="checkbox" data-cclear="${k}"> Remove the one saved here${f.source === 'admin' ? ' (the server file value, if any, is used again)' : ''}</label>` : ''}${hint(h)}</div>`; };
+const plainField = (k, label, ph, h) => { const f = (CM && CM.fields[k]) || {}; return `<div><label class="${LAB}" for="gs-c-${k}">${E(label)} ${f.source === 'env' ? '<span class="font-normal text-brand-slate">(from the server file)</span>' : ''}</label><input id="gs-c-${k}" class="adm-in" placeholder="${E(ph)}" value="${E(f.value || '')}" autocomplete="off">${hint(h)}</div>`; };
+async function load() {
+  adminInit(); const b = $('gs-body'); if (!b) return;
+  let r; try { [r, CM] = await Promise.all([api('/admin/general'), api('/admin/comms')]); } catch (e) { b.innerHTML = `<p class="text-sm text-red-600">${E(e.message)}</p>`; return; }
+  SI = r;
+  b.innerHTML = `<div class="space-y-5">
+  ${sec('Store details', 'Shown in the footer, Terms, Privacy and Contact pages, emails and search results. Anything left empty keeps the original wording.', [
+    txt('store_name', 'Store name', 'Used in emails and search-result data. Empty keeps SKINSENTIALS22.'), txt('tagline', 'Footer tagline', '', { max: 120 }),
+    txt('legal_name', 'Registered / trading name', 'For Terms and Privacy, for example Skinsentials22 Ltd. Empty = store name.'), txt('support_email', 'Support email', '', { type: 'email' }),
+    txt('support_phone', 'Support phone number', 'Shown as typed, for example 0903 207 8594.'), txt('whatsapp', 'WhatsApp number', 'Digits with country code, for example 2349012345678. Also used by the WhatsApp chat buttons.'),
+    txt('instagram', 'Instagram username', 'Just the name, without @.'), txt('privacy_email', 'Privacy requests email', 'Empty = the support email.', { type: 'email' }),
+    txt('address', 'Business address', 'Shown in the footer and Contact page.', { full: true }), txt('hours', 'Business hours', 'For example Mon\u2013Sat, 9am\u20136pm WAT.'),
+    txt('cutoff_text', 'Order cut-off note', 'Shown at checkout, on the delivery page and in order emails. For example: Orders placed before 2pm are packed the same day.', { max: 160 })].join(''), true)}
+  ${sec('Social links', 'Shown in the footer and in the data search engines read. Full https links.', [txt('facebook', 'Facebook', '', { ph: 'https://www.facebook.com/\u2026' }), txt('tiktok', 'TikTok', '', { ph: 'https://www.tiktok.com/@\u2026' }), txt('youtube', 'YouTube', '', { ph: 'https://www.youtube.com/@\u2026' }), txt('twitter', 'X (Twitter)', '', { ph: 'https://x.com/\u2026' })].join(''), true)}
+  ${sec('Website address (domain)', 'The address customers use to reach your shop. It is used in the sitemap and search results, in password and order emails, in referral and Glow Friend links, and when Paystack sends customers back after paying.',
+    `<input id="gs-site_url" class="adm-in" placeholder="https://www.skinsentials22.com.ng" autocomplete="off"><p class="text-[11px] text-brand-slate">Live address right now: <b id="gs-site-now">${E(r.site)}</b>. ${r.siteFromEnv ? 'The server file (.env) says ' + E(r.siteDefault) + '; an address saved here overrides it, and leaving this box empty goes back to it.' : 'Leave empty to use the address the server detects.'}</p>`)}
+  ${sec('Logo and pictures', '', `${fld('logo', 'Logo', 'image', 'Shown in the header, footer and sign-in page. A PNG or JPG with a clean background works best.')}${fld('favicon', 'Browser tab icon (favicon)', 'image', 'A small square picture, 64 \u00d7 64 or larger. If empty, the logo is used.')}${fld('og_image', 'Share picture', 'image', 'Shown when a page without its own picture is shared on WhatsApp, Facebook or Google. 1200 \u00d7 630 works best.')}`)}
+  ${sec('Search and tracking', 'Added to every page. Only paste IDs you own. If you use Analytics or the Pixel, mention them in your Privacy and Cookies text below.', [
+    txt('meta_title', 'Home page title in Google', 'Up to 70 characters. Empty keeps the original.', { max: 70, full: true }), txt('meta_desc', 'Home page description in Google', 'Up to 160 characters.', { area: 2, max: 160, full: true }),
+    txt('ga_id', 'Google Analytics 4 ID', 'Looks like G-XXXXXXXXXX.', { ph: 'G-XXXXXXXXXX' }), txt('fb_pixel', 'Meta (Facebook) Pixel ID', 'Numbers only.', { ph: '1234567890123456' }),
+    txt('gsc_file', 'Search Console verification file', 'The file name Google gives you, like google0123456789abcdef.html. The site will serve it for you.'), txt('gsc_meta', 'Search Console verification tag', 'Or paste only the content value of the meta tag Google gives you.')].join(''), true)}
+  ${sec('Email and alerts', 'Where order and payment alerts are sent, and how your emails look. A value saved here overrides the server file (.env); secrets are never shown again after saving.',
+    `<div class="grid sm:grid-cols-2 gap-4">${secretField('mail_key', 'Email API key (Resend)', 'Needed for customer and alert emails.')}${plainField('mail_from', 'Sender address', 'orders@yourdomain.com', 'An address on a domain you verified with your email provider.')}${txt('mail_name', 'Sender name', 'For example Skinsentials22 Orders.')}${txt('mail_reply_to', 'Reply-to address', 'Where customer replies go.', { type: 'email' })}${plainField('admin_email', 'Send order alerts to', 'you@gmail.com', 'New orders and payments are emailed here.')}${txt('mail_footer', 'Email footer line', 'Empty keeps: Questions? Reply to this email or message us on WhatsApp.', { max: 200 })}${secretField('tg_token', 'Telegram bot token', 'From @BotFather.')}${plainField('tg_chat', 'Telegram chat ID', '123456789', 'The number of your chat with the bot, or @channelname.')}${secretField('webhook', 'Alert webhook link (optional)', 'Slack, Discord or any https link that accepts a message.')}</div>
+    <div class="flex flex-wrap gap-2 items-center"><button type="button" id="gs-test" class="${btn2}"><i class="fa-solid fa-bell mr-1"></i>Send a test alert</button><span id="gs-cstatus" class="text-[11px] text-brand-slate"></span></div>`)}
+  ${sec('Maintenance mode', 'Show visitors a \u201cback soon\u201d page while you update. You stay able to sign in to the admin, Paystack payments already in progress still complete, and search engines are told the pause is temporary.',
+    `<label class="flex items-center gap-2 text-sm font-semibold text-brand-navy"><input id="gs-maintenance_on" type="checkbox"> Maintenance mode is on</label><div class="grid sm:grid-cols-2 gap-4">${txt('maintenance_title', 'Title', '', { ph: 'We will be right back' })}${txt('maintenance_until', 'Back at', 'For example: Back at 3pm today.')}${txt('maintenance_msg', 'Message', '', { area: 3, max: 400, full: true, ph: 'We are updating the store. Please check back soon.' })}</div>`)}
+  ${sec('App download page', 'Controls the page opened by \u201cDownload App\u201d. Empty fields keep the original wording and \u201ccoming soon\u201d buttons.', `${txt('app_headline', 'Headline', '', { max: 120, ph: 'Unlock the Full SKINSENTIALS22 Experience' })}${txt('app_text', 'Short text', 'What the app does for your customers.', { area: 3, max: 300 })}${fld('app_ios', 'App Store link', 'link', 'The https link to your app in the Apple App Store.')}${fld('app_android', 'Google Play link', 'link', 'The https link to your app in Google Play.')}${fld('app_apk', 'Android app file (APK)', 'file', 'Upload your .apk so customers can download it straight from your site. A \u201cDownload APK\u201d button appears on the app page.')}${fld('app_image', 'App screen picture', 'image', 'Replaces the phone mock-up. A tall picture (for example 600 \u00d7 1040) fits best.')}${fld('app_qr', 'QR code picture', 'image', 'Optional. A QR code that opens your app or this page.')}`)}
+  ${sec('Legal pages', 'The Terms, Privacy, Shipping, Returns and other policies are built in and use your store details above. Change the numbers they quote here, or replace any policy with your own text. Check any change against your real practice and Nigerian law.',
+    `<div class="grid sm:grid-cols-3 gap-4">${txt('legal_effective', 'Effective date', 'For example 1 December 2026.')}${txt('return_days', 'Return window (days)', '', { type: 'number' })}${txt('refund_days', 'Refund paid within (business days)', '', { type: 'number' })}${txt('damage_hours', 'Report damage within (hours)', '', { type: 'number' })}${txt('ack_days', 'Acknowledge complaints within (days)', '', { type: 'number' })}${txt('resolve_days', 'Resolve complaints within (days)', '', { type: 'number' })}</div>
+    <div class="space-y-2">${LEGAL.map(l => `<details class="border border-brand-stone rounded-lg"><summary class="cursor-pointer px-3 py-2 text-xs font-semibold text-brand-navy flex justify-between gap-2"><span>${E(l[1])}</span><span id="gs-legal-state-${l[0]}" class="font-normal text-brand-slate"></span></summary><div class="p-3 space-y-2"><textarea id="gs-legal_${l[0]}" rows="12" class="adm-in font-mono" maxlength="30000" placeholder="Empty = the built-in text is shown"></textarea><div class="flex flex-wrap gap-2"><button type="button" class="${btn2}" data-legal-load="${l[0]}">Load the built-in text to edit</button><button type="button" class="${btn2}" data-legal-clear="${l[0]}">Use the built-in text again</button></div><p class="text-[11px] text-brand-slate">Write <b>## Heading</b> for a heading, a blank line between paragraphs, <b>- item</b> for a list, <b>**bold**</b> and <b>[link text](https://\u2026)</b> for links.</p></div></details>`).join('')}</div>`)}
+  <div class="${card} p-5 space-y-3"><div class="flex flex-wrap gap-2 items-center"><button type="button" id="gs-save" class="${btn}">Save general settings</button><span id="gs-msg" role="status" class="text-xs text-brand-navy"></span></div>
+    <p class="text-[11px] text-brand-slate">Uploading a file fills the box only. Nothing changes on the website until you press Save.</p></div>
+  <div class="${card} p-5 space-y-3"><h2 class="font-semibold text-sm text-brand-navy">Move or update these settings from a file</h2>
+    <p class="text-[11px] text-brand-slate">Download your settings (secret keys are never included), edit them or reuse them on another store, then upload the file. Uploading only fills the form above; press Save to apply it. Maintenance mode is never switched on by an uploaded file.</p>
+    <div class="flex flex-wrap gap-2"><button type="button" id="gs-dl" class="${btn2}"><i class="fa-solid fa-download mr-1"></i>Download settings (.json)</button><label class="${btn2}"><i class="fa-solid fa-upload mr-1"></i>Upload settings (.json)<input id="gs-upjson" type="file" accept=".json,application/json" class="sr-only"></label></div></div></div>`;
+  fill({ ...r.general });
+  const st = CM.status; $('gs-cstatus').textContent = 'Alert channels working now: ' + ([st.telegram && 'Telegram', st.webhook && 'webhook', st.adminEmail && 'email'].filter(Boolean).join(', ') || 'none') + (st.customerEmail ? '. Customer emails are on.' : '. Customer emails are off (needs an API key and a sender address).');
+  b.querySelectorAll('input[data-up]').forEach(inp => inp.onchange = async () => {
+    const f = inp.files[0]; inp.value = ''; if (!f) return; const k = inp.dataset.up, kind = inp.dataset.kind;
+    if (kind === 'image' && !/\.(jpe?g|png|webp|gif)$/i.test(f.name)) return toast('Choose a JPG, PNG, WebP or GIF picture.');
+    note('Uploading ' + f.name + (kind === 'file' ? ' \u2014 large files take a while, keep this page open\u2026' : '\u2026'));
+    try { $('gs-' + k).value = await upload(f, kind); prevAll(); note('Uploaded. Press Save general settings to publish it.'); } catch (e) { note(''); toast(e.message); }
+  });
+  b.querySelectorAll('[data-clear]').forEach(x => x.onclick = () => { $('gs-' + x.dataset.clear).value = ''; prevAll(); note('Removed. Press Save general settings to publish this.'); });
+  b.querySelectorAll('[data-legal-load]').forEach(x => x.onclick = () => { const id = x.dataset.legalLoad, el = $('gs-legal_' + id); if (typeof window.skPolicyDefault !== 'function') return toast('The built-in text is not available on this page.'); if (el.value.trim() && !confirm('Replace what is in this box with the built-in text?')) return; el.value = window.skPolicyDefault(id); prevAll(); note('Built-in text loaded. Edit it, then press Save.'); });
+  b.querySelectorAll('[data-legal-clear]').forEach(x => x.onclick = () => { $('gs-legal_' + x.dataset.legalClear).value = ''; prevAll(); note('This policy will use the built-in text again after you press Save.'); });
+  KEYS.forEach(k => { const el = $('gs-' + k); if (el) el.addEventListener('input', prevAll); });
+  $('gs-save').onclick = save;
+  $('gs-test').onclick = async () => { try { await save(true); await api('/admin/notify/test', { method: 'POST', body: {} }); toast('Test alert sent. Check your phone or inbox.'); } catch (e) { toast(e.message); } };
+  $('gs-dl').onclick = () => { const a = document.createElement('a'), u = URL.createObjectURL(new Blob([JSON.stringify({ type: 'skinsentials22-general-settings', version: 2, exported: new Date().toISOString(), general: collect() }, null, 1)], { type: 'application/json' })); a.href = u; a.download = 'skinsentials22-general-settings.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 3000); };
+  $('gs-upjson').onchange = async ev => {
+    const f = ev.target.files[0]; ev.target.value = ''; if (!f) return; let j; try { j = JSON.parse(await f.text()); } catch (e) { return toast('That file is not valid settings JSON.'); }
+    const src = j && typeof j === 'object' ? (j.general || j) : null; let n = 0; if (src) KEYS.forEach(k => { if (k === 'maintenance_on') return; if (typeof src[k] === 'string' && $('gs-' + k)) { $('gs-' + k).value = src[k]; n++; } });
+    if (!n) return toast('No general settings were found in that file.'); prevAll(); note(n + ' settings loaded into the form' + (src.site_url ? ' (including the website address, check it carefully)' : '') + '. Review them and press Save.');
+  };
+}
+async function save(quiet) {
+  const b = $('gs-save'); b.disabled = true; note('Saving\u2026');
+  try {
+    const r = await api('/admin/general', { method: 'PUT', body: collect() }); SI = r; fill(r.general); applyGeneral({ ...r.general, site_url: r.site });
+    const cbody = {}, clear = []; COMMS_SECRETS.concat(COMMS_PLAIN).forEach(k => { const el = $('gs-c-' + k); if (el && el.value.trim()) cbody[k] = el.value.trim(); }); document.querySelectorAll('[data-cclear]').forEach(x => { if (x.checked) clear.push(x.dataset.cclear); });
+    if (Object.keys(cbody).length || clear.length) { cbody.clear = clear; CM = await api('/admin/comms', { method: 'PUT', body: cbody }); COMMS_SECRETS.concat(COMMS_PLAIN).forEach(k => { const el = $('gs-c-' + k); if (el && COMMS_SECRETS.includes(k)) el.value = ''; }); }
+    if (typeof window.skPolicyReload === 'function') window.skPolicyReload();
+    const s = $('gs-site-now'); if (s) s.textContent = r.site;
+    note(r.siteChanged ? 'Saved. The website address is now ' + r.site + '. Also add this address in Google Search Console and your Paystack dashboard, and point the domain to this server.' : 'Saved. The changes are live.'); if (!quiet) { toast('General settings saved'); load(); }
+  } catch (e) { note(''); toast(e.message); throw e; } finally { b.disabled = false; }
+}
+
+/* ---------- the upload that goes with each download ---------- */
+async function restoreJson(file) {
+  let j; try { j = JSON.parse(await file.text()); } catch (e) { return toast('That file is not a valid backup (.json).'); }
+  if (!j || !Array.isArray(j.products) || !j.products.length) return toast('That does not look like a Skinsentials22 backup: it has no products.');
+  const posts = j.content && Array.isArray(j.content.posts) ? j.content.posts.length : 0;
+  if (!confirm(`Restore ${j.products.length} products${posts ? ', ' + posts + ' blog posts' : ''}, hero slides, brands and store settings from this file?\n\nYour current versions of these are replaced. Orders, customers, payments and passwords are NOT changed. A backup of what you have now is saved on the server first.`)) return;
+  const bad = []; const step = async (name, fn) => { try { await fn(); } catch (e) { bad.push(name + ': ' + e.message); } };
+  try { toast('Saving a safety backup\u2026'); await api('/admin/backups', { method: 'POST', body: { kind: 'manual' } }); } catch (e) { return toast('Could not save the safety backup, so nothing was restored. ' + e.message); }
+  await step('Products', async () => { const cur = await api('/products'); await api('/admin/products', { method: 'PUT', body: { products: j.products, rev: cur.rev } }); });
+  if (j.content && typeof j.content === 'object') await step('Blog, slides and announcement', async () => { const c = await api('/admin/content'); await api('/admin/content', { method: 'PUT', body: { ...j.content, rev: c.rev } }); });
+  if (j.settings && typeof j.settings === 'object') await step('Store settings', () => api('/admin/settings', { method: 'PUT', body: j.settings }));
+  if (j.general && typeof j.general === 'object') await step('General settings', () => { const g = { ...j.general }; delete g.site_url; delete g.maintenance_on; delete g.whatsapp; delete g.instagram; return api('/admin/general', { method: 'PUT', body: g }); });
+  if (j.pricing && typeof j.pricing === 'object') await step('Discounts', () => api('/admin/pricing', { method: 'PUT', body: j.pricing }));
+  if (Array.isArray(j.brands)) for (const br of j.brands) if (br && br.name) await step('Brand ' + br.name, () => api('/admin/brands', { method: 'PUT', body: { name: br.name, logo: br.logo || '' } }));
+  if (bad.length) alert('Restored with some problems:\n\n' + bad.join('\n') + '\n\nEverything else was restored. A safety backup of your earlier store is in Backups & Update.'); else toast('Backup restored. Reloading\u2026');
+  setTimeout(() => location.reload(), bad.length ? 300 : 1400);
+}
+async function uploadDb(file) {
+  if (!/\.db$/i.test(file.name)) return toast('Choose a .db file made with \u201cDownload database backup\u201d.');
+  toast('Uploading backup\u2026');
+  try {
+    const r = await realFetch(BASE + '/api/admin/backups/upload', { method: 'POST', headers: { Authorization: 'Bearer ' + (sessionStorage.getItem(AT) || '') }, body: file }), j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(r.status === 401 ? 'Your admin session ended. Please sign in again.' : (j.error || 'Upload failed'));
+    toast(`Backup uploaded (${j.backup.products} products, ${j.backup.orders} orders). Open Backups & Update to restore from it.`); if (typeof window.adminTab === 'function') window.adminTab('backups');
+  } catch (e) { toast(e.message); }
+}
+async function importSubs(file) {
+  let text; try { text = await file.text(); } catch (e) { return toast('Could not read that file.'); }
+  try {
+    const r = await api('/admin/subscribers/import', { method: 'POST', body: { csv: text } });
+    toast(`Subscribers: ${r.added} added, ${r.existing} already on the list, ${r.unsubscribed} skipped (they had unsubscribed), ${r.invalid} not valid.`);
+    const l = await api('/admin/subscribers'), tb = $('subtable'); if (window.ADM) window.ADM.subs = l.subscribers;
+    if (tb) { const d = t => new Date(t).toLocaleDateString(); tb.innerHTML = l.subscribers.map(s => `<tr class="border-t border-brand-stone/60"><td class="p-3">${E(s.email)}</td><td class="p-3">${E(s.name || '')}</td><td class="p-3">${d(s.created)}</td><td class="p-3">${s.active ? 'Active' : 'Unsubscribed'}</td></tr>`).join(''); const n = $('sub-n'); if (n) n.innerText = l.subscribers.filter(s => s.active).length; }
+  } catch (e) { toast(e.message); }
+}
+const pick = (label, accept, id, fn) => { const l = document.createElement('label'); l.id = id; l.className = btn2; l.innerHTML = `<i class="fa-solid fa-upload mr-1"></i>${label}<input type="file" accept="${accept}" class="sr-only">`; l.querySelector('input').onchange = ev => { const f = ev.target.files[0]; ev.target.value = ''; if (f) fn(f); }; return l; };
+function injectUploads() {
+  const dl = document.querySelector('#tab-people [onclick="dlSubs()"]');
+  if (dl && !$('gs-sub-up')) { const w = document.createElement('div'); w.className = 'flex flex-wrap gap-2'; dl.parentNode.insertBefore(w, dl); w.appendChild(dl); w.appendChild(pick('Import CSV', '.csv,text/csv,.txt', 'gs-sub-up', importSubs)); }
+  const bk = document.querySelector('[onclick="skBackupDb()"]');
+  if (bk && !$('gs-bk-json')) {
+    const wrap = document.createElement('div'); wrap.className = 'flex flex-wrap gap-2 pt-1';
+    wrap.appendChild(pick('Upload full backup (.json)', '.json,application/json', 'gs-bk-json', restoreJson)); wrap.appendChild(pick('Upload database backup (.db)', '.db,application/octet-stream', 'gs-bk-db', uploadDb));
+    const p = document.createElement('p'); p.className = 'text-[11px] text-brand-slate'; p.innerHTML = 'Uploading a <b>.json</b> backup restores products, blog posts, hero slides, brands and store settings (a safety copy is saved first; orders, customers and payments are never changed). Uploading a <b>.db</b> backup adds it to <b>Backups &amp; Update</b>, where you can restore products and posts from it.';
+    const host = bk.parentElement; host.appendChild(wrap); host.appendChild(p);
+  }
+}
+
+function boot() {
+  const nav = window.navigateTo; if (typeof nav === 'function') window.navigateTo = function (p) { const r = nav.apply(this, arguments); if (p === 'admin') setTimeout(() => { adminInit(); injectUploads(); applyMaint(window.__skGeneral); }, 0); if (p === 'app') pub(); return r; };
+  const at = window.adminTab; if (typeof at === 'function') window.adminTab = function (t) { adminInit(); const r = at.apply(this, arguments); injectUploads(); if (t === 'general') load(); return r; };
+  const lg = window.applyLogo; if (typeof lg === 'function') window.applyLogo = function () { const r = lg.apply(this, arguments); if (window.__skGeneral) applyGeneral(window.__skGeneral); return r; };
+  pub(); setTimeout(pub, 2000); setInterval(() => { if (window.__skGeneral) applyMaint(window.__skGeneral); }, 2000);
+}
+if (document.readyState === 'complete') boot(); else window.addEventListener('load', boot);
+})();
+</script>
+
+<script id="pricing-points-js">
+/* SKINSENTIALS22 Admin > Discounts & Points.
+   Manual: type a sale price (and optional dates) on any product, and a Glow Points number if you want your own.
+   Automatic: rules that take a % or \u20a6 off everything, a category or a brand between dates; points follow the Glow Rewards rate.
+   Saved on the server (/api/admin/pricing and /api/admin/glow/overrides); the product's own price is never changed.
+   Delete this whole script block to remove the page. */
+(function () {
+'use strict';
+const BASE = window.SK_API_BASE || '', AT = 'sk22adm';
+const $ = id => document.getElementById(id), E = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const toast = m => { try { showToast(m); } catch (e) { alert(m); } };
+const realFetch = window.fetch.bind(window), T = n => '\u20a6' + Math.round(n).toLocaleString('en-NG');
+const card = 'bg-white border border-brand-stone rounded-xl', btn = 'bg-brand-navy hover:bg-brand-blue text-white text-xs font-semibold px-5 py-2.5 rounded-full disabled:opacity-40', btn2 = 'border border-brand-stone text-xs font-semibold px-3 py-1.5 rounded-full hover:bg-brand-mist cursor-pointer inline-block';
+const LAB = 'block text-[11px] font-semibold text-brand-navy mb-1', IN = 'adm-in';
+async function api(path, o) {
+  o = o || {}; const h = { Authorization: 'Bearer ' + (sessionStorage.getItem(AT) || '') }; if (o.body) h['Content-Type'] = 'application/json';
+  let r; try { r = await realFetch(BASE + '/api' + path, { method: o.method || 'GET', headers: h, body: o.body ? JSON.stringify(o.body) : undefined }); } catch (e) { throw new Error('Cannot reach the server. Check your connection.'); }
+  const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(r.status === 401 ? 'Your admin session ended. Please sign in again.' : (j.error || 'Something went wrong')); return j;
+}
+/* the same price rules the server uses, so you see the result before you save */
+const watMs = (s, end) => { s = String(s || ''); if (!/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/.test(s)) return null; const t = Date.parse(s.slice(0, 10) + 'T' + (s.length > 10 ? s.slice(11) + ':00' : end ? '23:59:59' : '00:00:00') + '+01:00'); return isNaN(t) ? null : t; };
+const inWin = (m, t) => { const a = watMs(m.start, false), b = watMs(m.end, true); return (a === null || t >= a) && (b === null || t <= b); };
+const hit = (u, r) => { if (u.scope === 'all') return true; const set = String(u.match || '').toLowerCase().split(',').map(x => x.trim()).filter(Boolean); if (!set.length) return false; return u.scope === 'brand' ? set.includes(String(r.brand || '').toLowerCase()) : (r.keys || []).some(k => set.includes(k)); };
+const status = (u, t) => !u.on ? 'off' : (watMs(u.start, false) !== null && t < watMs(u.start, false)) ? 'scheduled' : (watMs(u.end, true) !== null && t > watMs(u.end, true)) ? 'ended' : 'active';
+function evalSale(r, cfg, rules, t) {
+  if (!cfg.on || r.price <= 0) return null; const sale = Math.round(+r.sale) || 0;
+  if (sale > 0 && sale < r.price && inWin(r, t)) return { price: sale, src: 'manual' };
+  if (r.off) return null; let best = null;
+  for (const u of rules) { if (!u.on || !inWin(u, t) || !hit(u, r)) continue; const v = +u.value || 0; let np = u.type === 'amt' ? r.price - v : r.price * (1 - v / 100); np = cfg.round_to > 1 ? Math.round(np / cfg.round_to) * cfg.round_to : Math.round(np); if (np <= 0 || np >= r.price) continue; if (!best || np < best.price) best = { price: np, src: 'auto', label: u.badge || u.name }; }
+  return best;
+}
+const dtv = (s, end) => !s ? '' : s.length === 10 ? s + (end ? 'T23:59' : 'T00:00') : s;
+let CFG = { on: true, round_to: 0 }, RULES = [], ROWS = [], META = { brands: [], categories: [], glowOn: false }, SEL = new Set(), QUERY = '', VIEW = 'all', NOW = Date.now();
+
+function adminInit() {
+  if (!$('tab-orders') || $('tab-pricing')) return;
+  const nav = '<button data-tab="pricing" onclick="adminTab(\'pricing\')" class="adm-tab-btn text-left text-sm px-3 py-2 rounded-lg text-gray-300 hover:bg-white/10"><i class="fa-solid fa-tags w-5"></i>Discounts &amp; Points</button>';
+  const gb = document.querySelector('[data-tab=general]'), pb = document.querySelector('[data-tab=products]'), ob = document.querySelector('[data-tab=orders]');
+  if (pb) pb.insertAdjacentHTML('afterend', nav); else if (gb) gb.insertAdjacentHTML('beforebegin', nav); else if (ob) ob.insertAdjacentHTML('afterend', nav); else return;
+  $('tab-orders').parentElement.insertAdjacentHTML('beforeend', '<div id="tab-pricing" class="admin-tab hidden"><h1 class="font-serif text-3xl font-bold text-brand-navy mb-1">Discounts &amp; Points</h1><p class="text-xs text-brand-slate mb-4">Put products on sale by hand or with automatic rules. The original price is shown crossed out with the new price under it, and each product shows the Glow Points it earns. The product\u2019s own price is never changed.</p><div id="pr-body"><p class="text-sm text-brand-slate">Loading\u2026</p></div></div>');
+}
+const note = m => { const n = $('pr-msg'); if (n) n.textContent = m || ''; };
+function rowOf(x) { const m = (x.sale && x.sale.src === 'manual') ? x.sale : null; return { ...x, sale: '', start: '', end: '', off: false, ptsOrig: x.pts && x.pts.manual != null ? String(x.pts.manual) : '', ptsMan: x.pts && x.pts.manual != null ? String(x.pts.manual) : '', _server: x.sale }; }
+async function load(keepNote) {
+  adminInit(); const b = $('pr-body'); if (!b) return;
+  let r; try { r = await api('/admin/pricing'); } catch (e) { b.innerHTML = `<p class="text-sm text-red-600">${E(e.message)}</p>`; return; }
+  CFG = { on: r.cfg.on, round_to: r.cfg.round_to || 0 }; RULES = r.rules.map(u => ({ ...u })); META = { brands: r.brands, categories: r.categories, glowOn: r.glowOn }; NOW = Date.parse(r.now) || Date.now();
+  ROWS = r.rows.map(x => { const o = rowOf(x), m = r.cfg.manual[x.id]; if (m) { o.sale = m.sale ? String(m.sale) : ''; o.start = m.start || ''; o.end = m.end || ''; o.off = !!m.off; } return o; }); SEL = new Set();
+  draw(); if (!keepNote) note('');
+}
+const ruleHtml = (u, i) => { const st = status(u, NOW), cnt = ROWS.filter(r => hit(u, r)).length, badge = { active: 'bg-green-100 text-green-800', scheduled: 'bg-amber-100 text-amber-800', ended: 'bg-gray-200 text-gray-600', off: 'bg-gray-200 text-gray-600' }[st];
+  return `<div class="border border-brand-stone rounded-lg p-3 space-y-3" data-rule="${i}"><div class="flex flex-wrap items-center gap-2 justify-between"><label class="flex items-center gap-2 text-xs font-semibold text-brand-navy"><input type="checkbox" data-f="on" ${u.on ? 'checked' : ''}> On</label><div class="flex items-center gap-2"><span class="text-[10px] font-bold uppercase rounded-full px-2 py-0.5 ${badge}">${st === 'active' ? 'Active now' : st === 'scheduled' ? 'Scheduled' : st === 'ended' ? 'Ended' : 'Switched off'}</span><span class="text-[11px] text-brand-slate">${cnt} product${cnt === 1 ? '' : 's'}</span><button type="button" class="${btn2}" data-delrule="${i}">Delete</button></div></div>
+  <div class="grid sm:grid-cols-4 gap-3"><div class="sm:col-span-2"><label class="${LAB}">Name (for you)</label><input class="${IN}" data-f="name" maxlength="60" value="${E(u.name)}"></div><div><label class="${LAB}">Shown on the badge</label><input class="${IN}" data-f="badge" maxlength="30" value="${E(u.badge)}" placeholder="optional"></div><div><label class="${LAB}">Applies to</label><select class="${IN}" data-f="scope"><option value="all" ${u.scope === 'all' ? 'selected' : ''}>Every product</option><option value="category" ${u.scope === 'category' ? 'selected' : ''}>A category</option><option value="brand" ${u.scope === 'brand' ? 'selected' : ''}>A brand</option></select></div>
+  ${u.scope !== 'all' ? `<div class="sm:col-span-2"><label class="${LAB}">${u.scope === 'brand' ? 'Brands' : 'Categories'} (separate with commas)</label><input class="${IN}" data-f="match" maxlength="300" list="pr-dl-${u.scope}" value="${E(u.match)}" placeholder="${u.scope === 'brand' ? 'Eucerin, Olay' : 'Sun care, Body care'}"></div>` : ''}
+  <div><label class="${LAB}">Discount</label><div class="flex gap-1"><select class="${IN}" data-f="type" style="max-width:6.5rem"><option value="pct" ${u.type !== 'amt' ? 'selected' : ''}>% off</option><option value="amt" ${u.type === 'amt' ? 'selected' : ''}>\u20a6 off</option></select><input class="${IN}" data-f="value" type="number" min="1" value="${E(u.value)}"></div></div><div></div>
+  <div><label class="${LAB}">Starts (Lagos time)</label><input class="${IN}" data-f="start" type="datetime-local" value="${E(dtv(u.start, false))}"></div><div><label class="${LAB}">Ends (Lagos time)</label><input class="${IN}" data-f="end" type="datetime-local" value="${E(dtv(u.end, true))}"></div></div></div>`; };
+const visible = () => ROWS.filter(r => (!QUERY || (r.name + ' ' + r.brand + ' ' + r.category).toLowerCase().includes(QUERY)) && (VIEW === 'all' || (VIEW === 'sale') === !!evalSale(r, CFG, RULES, NOW)));
+function rowHtml(r) { const e = evalSale(r, CFG, RULES, NOW), pct = e ? Math.round((1 - e.price / r.price) * 100) : 0, bad = r.sale && (+r.sale >= r.price || +r.sale <= 0);
+  return `<tr class="border-t border-brand-stone/60 align-top" data-row="${E(r.id)}"><td class="p-2"><input type="checkbox" data-pick="${E(r.id)}" ${SEL.has(r.id) ? 'checked' : ''} aria-label="Select ${E(r.name)}"></td>
+  <td class="p-2 min-w-[11rem]"><b class="text-brand-navy">${E(r.name)}</b>${r.hidden ? ' <span class="text-[10px] text-amber-700">(hidden)</span>' : ''}<br><span class="text-brand-slate">${E([r.brand, r.category].filter(Boolean).join(' \u00b7 '))}</span></td>
+  <td class="p-2 whitespace-nowrap">${T(r.price)}</td>
+  <td class="p-2"><input class="${IN} ${bad ? 'border-red-400' : ''}" style="width:6.5rem" type="number" min="1" data-r="sale" value="${E(r.sale)}" placeholder="no sale" aria-label="Sale price of ${E(r.name)}"></td>
+  <td class="p-2"><input class="${IN}" style="width:11rem" type="datetime-local" data-r="start" value="${E(dtv(r.start, false))}" aria-label="Sale starts"></td><td class="p-2"><input class="${IN}" style="width:11rem" type="datetime-local" data-r="end" value="${E(dtv(r.end, true))}" aria-label="Sale ends"></td>
+  <td class="p-2 text-center"><input type="checkbox" data-r="off" ${r.off ? 'checked' : ''} aria-label="No automatic discounts for ${E(r.name)}"></td>
+  <td class="p-2 whitespace-nowrap" data-now="${E(r.id)}">${nowHtml(r, e, pct)}</td>
+  ${META.glowOn ? `<td class="p-2 text-center">${r.pts ? r.pts.auto : '-'}</td><td class="p-2"><input class="${IN}" style="width:5rem" type="number" min="0" data-r="ptsMan" value="${E(r.ptsMan)}" placeholder="auto" aria-label="Glow Points for ${E(r.name)}"></td>` : ''}</tr>`; }
+const nowHtml = (r, e, pct) => e ? `<b class="text-brand-navy">${T(e.price)}</b> <span class="text-red-600 font-bold">-${pct}%</span><br><span class="text-[10px] text-brand-slate">${e.src === 'manual' ? 'Manual sale' : 'Automatic: ' + E(e.label || '')}</span>` : `<span class="text-brand-slate">${T(r.price)}</span>`;
+function draw() {
+  const b = $('pr-body'); if (!b) return; const rows = visible();
+  b.innerHTML = `<div class="space-y-5">
+  <div class="${card} p-5 space-y-3"><h2 class="font-semibold text-sm text-brand-navy">Discounts</h2><div class="flex flex-wrap gap-4 items-end"><label class="flex items-center gap-2 text-sm font-semibold text-brand-navy"><input id="pr-on" type="checkbox" ${CFG.on ? 'checked' : ''}> Discounts are on (manual sales and automatic rules)</label>
+    <div><label class="${LAB}" for="pr-round">Round automatic prices to the nearest</label><select id="pr-round" class="${IN}" style="max-width:9rem">${[[0, 'No rounding'], [10, '\u20a610'], [50, '\u20a650'], [100, '\u20a6100'], [500, '\u20a6500']].map(([v, l]) => `<option value="${v}" ${CFG.round_to === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>
+    <p class="text-[11px] text-brand-slate">A manual sale price on a product wins over rules. If several rules fit a product, the lowest price is used. Dates use Lagos time and switch on and off by themselves.</p></div>
+  <div class="${card} p-5 space-y-3"><div class="flex flex-wrap items-center justify-between gap-2"><h2 class="font-semibold text-sm text-brand-navy">Automatic rules</h2><div class="flex gap-2"><button type="button" class="${btn2}" data-addrule="all">+ Sale on everything</button><button type="button" class="${btn2}" data-addrule="category">+ Category sale</button><button type="button" class="${btn2}" data-addrule="brand">+ Brand sale</button></div></div>
+    <div class="space-y-3" id="pr-rules">${RULES.length ? RULES.map(ruleHtml).join('') : '<p class="text-xs text-brand-slate">No rules yet. Add one above, for example 10% off everything from 1 to 31 December.</p>'}</div></div>
+  <div class="${card} p-5 space-y-3"><div class="flex flex-wrap items-center justify-between gap-2"><h2 class="font-semibold text-sm text-brand-navy">Products</h2><div class="flex flex-wrap gap-2 items-center"><input id="pr-q" class="${IN}" style="width:13rem" placeholder="Search products" value="${E(QUERY)}"><select id="pr-view" class="${IN}" style="width:9rem"><option value="all" ${VIEW === 'all' ? 'selected' : ''}>All products</option><option value="sale" ${VIEW === 'sale' ? 'selected' : ''}>On sale now</option><option value="none" ${VIEW === 'none' ? 'selected' : ''}>Not on sale</option></select></div></div>
+    <div id="pr-bulk" class="rounded-lg bg-brand-mist p-3 space-y-2 ${SEL.size ? '' : 'hidden'}"><div class="text-xs font-semibold text-brand-navy"><span id="pr-nsel">${SEL.size}</span> selected</div><div class="flex flex-wrap gap-2 items-center text-xs">
+      <input id="pr-bpct" class="${IN}" style="width:5rem" type="number" min="1" max="95" placeholder="% off"><button type="button" class="${btn2}" data-bulk="pct">Set sale price</button>
+      <input id="pr-bamt" class="${IN}" style="width:6rem" type="number" min="1" placeholder="\u20a6 off"><button type="button" class="${btn2}" data-bulk="amt">Set sale price</button>
+      <input id="pr-bs" class="${IN}" style="width:11rem" type="datetime-local" aria-label="Sale starts"><input id="pr-be" class="${IN}" style="width:11rem" type="datetime-local" aria-label="Sale ends"><button type="button" class="${btn2}" data-bulk="dates">Set dates</button>
+      <button type="button" class="${btn2}" data-bulk="clear">Clear sale</button><button type="button" class="${btn2}" data-bulk="off">No automatic discounts</button><button type="button" class="${btn2}" data-bulk="on">Allow automatic discounts</button>
+      ${META.glowOn ? `<input id="pr-bpts" class="${IN}" style="width:5rem" type="number" min="0" placeholder="points"><button type="button" class="${btn2}" data-bulk="pts">Set points</button><button type="button" class="${btn2}" data-bulk="ptsauto">Automatic points</button>` : ''}</div></div>
+    <div class="overflow-x-auto"><table class="w-full text-xs"><thead class="bg-brand-mist text-left"><tr><th class="p-2"><input type="checkbox" id="pr-all" aria-label="Select all shown"></th><th class="p-2">Product</th><th class="p-2">Regular price</th><th class="p-2">Sale price (\u20a6)</th><th class="p-2">Starts</th><th class="p-2">Ends</th><th class="p-2" title="Tick to keep this product out of automatic rules">No auto</th><th class="p-2">Customers pay</th>${META.glowOn ? '<th class="p-2 text-center" title="Points from the Glow Rewards rate">Points auto</th><th class="p-2" title="Your own number; empty = automatic">Points manual</th>' : ''}</tr></thead><tbody id="pr-tb">${rows.map(rowHtml).join('') || '<tr><td colspan="10" class="p-4 text-brand-slate">No products match.</td></tr>'}</tbody></table></div>
+    ${META.glowOn ? '' : '<p class="text-[11px] text-amber-700">Glow Rewards is switched off, so points are not shown to shoppers. Turn it on in Glow Rewards to manage points here.</p>'}
+    <datalist id="pr-dl-category">${META.categories.map(c => `<option value="${E(c)}">`).join('')}</datalist><datalist id="pr-dl-brand">${META.brands.map(c => `<option value="${E(c)}">`).join('')}</datalist></div>
+  <div class="${card} p-5"><div class="flex flex-wrap gap-2 items-center"><button type="button" id="pr-save" class="${btn}">Save discounts &amp; points</button><span id="pr-msg" role="status" class="text-xs text-brand-navy"></span></div><p class="text-[11px] text-brand-slate mt-2">Nothing changes in the shop until you press Save. Customers always pay the price the server works out, so a sale cannot be faked from the browser.</p></div></div>`;
+  wire();
+}
+function bulkSel() { return ROWS.filter(r => SEL.has(r.id)); }
+function refreshNow() { document.querySelectorAll('#pr-tb [data-row]').forEach(tr => { const r = ROWS.find(x => x.id === tr.dataset.row); if (!r) return; const e = evalSale(r, CFG, RULES, NOW), c = tr.querySelector('[data-now]'); if (c) c.innerHTML = nowHtml(r, e, e ? Math.round((1 - e.price / r.price) * 100) : 0); const s = tr.querySelector('[data-r=sale]'); if (s) s.classList.toggle('border-red-400', !!(r.sale && (+r.sale >= r.price || +r.sale <= 0))); }); document.querySelectorAll('[data-rule]').forEach(el => { const u = RULES[+el.dataset.rule]; if (!u) return; const n = ROWS.filter(r => hit(u, r)).length, sp = el.querySelectorAll('span.text-\\[11px\\]')[0]; if (sp) sp.textContent = n + ' product' + (n === 1 ? '' : 's'); }); }
+function wire() {
+  const b = $('pr-body');
+  $('pr-on').onchange = e => { CFG.on = e.target.checked; refreshNow(); };
+  $('pr-round').onchange = e => { CFG.round_to = +e.target.value; refreshNow(); };
+  b.querySelectorAll('[data-addrule]').forEach(x => x.onclick = () => { RULES.push({ id: 'r' + Date.now().toString(36), name: x.dataset.addrule === 'all' ? 'Sale on everything' : x.dataset.addrule === 'brand' ? 'Brand sale' : 'Category sale', on: true, scope: x.dataset.addrule, match: '', type: 'pct', value: 10, start: '', end: '', badge: '' }); draw(); note('New rule added. Fill it in and press Save.'); });
+  b.querySelectorAll('[data-delrule]').forEach(x => x.onclick = () => { if (!confirm('Delete this rule?')) return; RULES.splice(+x.dataset.delrule, 1); draw(); });
+  b.querySelectorAll('[data-rule]').forEach(box => { const u = () => RULES[+box.dataset.rule]; box.addEventListener('input', ev => { const f = ev.target.dataset.f; if (!f || !u()) return; u()[f] = ev.target.type === 'checkbox' ? ev.target.checked : ev.target.value; if (f !== 'scope' && f !== 'on') refreshNow(); }); box.addEventListener('change', ev => { const f = ev.target.dataset.f; if (!f || !u()) return; u()[f] = ev.target.type === 'checkbox' ? ev.target.checked : ev.target.value; if (f === 'scope' || f === 'on' || f === 'type') draw(); }); });
+  $('pr-q').oninput = e => { QUERY = e.target.value.trim().toLowerCase(); redrawRows(); };
+  $('pr-view').onchange = e => { VIEW = e.target.value; redrawRows(); };
+  $('pr-all').onchange = e => { visible().forEach(r => e.target.checked ? SEL.add(r.id) : SEL.delete(r.id)); redrawRows(); };
+  wireRows();
+  b.querySelectorAll('[data-bulk]').forEach(x => x.onclick = () => bulk(x.dataset.bulk));
+  $('pr-save').onclick = save;
+}
+function redrawRows() { const tb = $('pr-tb'); if (!tb) return; tb.innerHTML = visible().map(rowHtml).join('') || '<tr><td colspan="10" class="p-4 text-brand-slate">No products match.</td></tr>'; wireRows(); const bk = $('pr-bulk'); if (bk) bk.classList.toggle('hidden', !SEL.size); const n = $('pr-nsel'); if (n) n.textContent = SEL.size; }
+function wireRows() {
+  const tb = $('pr-tb'); if (!tb) return;
+  tb.oninput = tb.onchange = ev => { const t = ev.target, tr = t.closest('[data-row]'); if (!tr) return; const r = ROWS.find(x => x.id === tr.dataset.row); if (!r) return;
+    if (t.dataset.pick !== undefined) { t.checked ? SEL.add(r.id) : SEL.delete(r.id); const bk = $('pr-bulk'); if (bk) bk.classList.toggle('hidden', !SEL.size); const n = $('pr-nsel'); if (n) n.textContent = SEL.size; return; }
+    const f = t.dataset.r; if (!f) return; r[f] = t.type === 'checkbox' ? t.checked : t.value; refreshNow(); };
+}
+function bulk(kind) {
+  const rows = bulkSel(); if (!rows.length) return toast('Select some products first.'); const num = id => Math.round(+$(id).value) || 0;
+  if (kind === 'pct' || kind === 'amt') { const v = num(kind === 'pct' ? 'pr-bpct' : 'pr-bamt'); if (v <= 0 || (kind === 'pct' && v > 95)) return toast(kind === 'pct' ? 'Enter a percentage from 1 to 95.' : 'Enter an amount in naira.'); rows.forEach(r => { let p = kind === 'pct' ? r.price * (1 - v / 100) : r.price - v; p = CFG.round_to > 1 ? Math.round(p / CFG.round_to) * CFG.round_to : Math.round(p); r.sale = p > 0 && p < r.price ? String(p) : ''; }); }
+  else if (kind === 'dates') { const s = $('pr-bs').value, e = $('pr-be').value; if (s && e && s > e) return toast('The end is before the start.'); rows.forEach(r => { r.start = s; r.end = e; }); }
+  else if (kind === 'clear') rows.forEach(r => { r.sale = ''; r.start = ''; r.end = ''; });
+  else if (kind === 'off' || kind === 'on') rows.forEach(r => { r.off = kind === 'off'; });
+  else if (kind === 'pts') { const v = $('pr-bpts').value; if (v === '' || +v < 0) return toast('Enter the points each unit should earn.'); rows.forEach(r => { r.ptsMan = String(Math.floor(+v)); }); }
+  else if (kind === 'ptsauto') rows.forEach(r => { r.ptsMan = ''; });
+  redrawRows(); note(rows.length + ' product' + (rows.length === 1 ? '' : 's') + ' changed. Press Save to apply.');
+}
+async function save() {
+  const bt = $('pr-save'); bt.disabled = true; note('Saving\u2026');
+  try {
+    const bad = ROWS.find(r => r.sale && (+r.sale <= 0 || +r.sale >= r.price)); if (bad) throw new Error(`The sale price of ${bad.name} must be lower than its regular price (${T(bad.price)}).`);
+    const manual = {}; ROWS.forEach(r => { const s = Math.round(+r.sale) || 0; if (s > 0 || r.off) manual[r.id] = { sale: s, start: r.start || '', end: r.end || '', off: !!r.off }; });
+    await api('/admin/pricing', { method: 'PUT', body: { on: CFG.on, round_to: CFG.round_to, rules: RULES.map(u => ({ ...u, value: +u.value || 0 })), manual } });
+    const groups = new Map(); ROWS.filter(r => (r.ptsMan || '') !== (r.ptsOrig || '')).forEach(r => { const k = r.ptsMan === '' ? 'auto' : String(Math.max(0, Math.floor(+r.ptsMan) || 0)); (groups.get(k) || groups.set(k, []).get(k)).push(r.id); });
+    for (const [k, ids] of groups) await api('/admin/glow/overrides', { method: 'PUT', body: { ids, points: k === 'auto' ? null : +k } });
+    await refreshShop(); await load(true); note('Saved. Customers see the new prices and points now.'); toast('Discounts & points saved');
+  } catch (e) { note(''); toast(e.message); } finally { bt.disabled = false; }
+}
+async function refreshShop() { try { const r = await api('/products'); window.SK_SALES = r.sales || {}; window.SK_PTS = r.pts || {}; try { if (typeof renderCatalog === 'function' && typeof PRODUCTS !== 'undefined') { renderCatalog(PRODUCTS); if (typeof renderHomeFeatured === 'function') renderHomeFeatured(); } } catch (e) {} } catch (e) {} }
+
+function boot() {
+  const nav = window.navigateTo; if (typeof nav === 'function') window.navigateTo = function (p) { const r = nav.apply(this, arguments); if (p === 'admin') setTimeout(adminInit, 0); return r; };
+  const at = window.adminTab; if (typeof at === 'function') window.adminTab = function (t) { adminInit(); const r = at.apply(this, arguments); if (t === 'pricing') load(); return r; };
+}
+if (document.readyState === 'complete') boot(); else window.addEventListener('load', boot);
+})();
+</script>
 </body>
 </html>

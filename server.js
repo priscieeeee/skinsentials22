@@ -10,10 +10,35 @@ const ROOT = __dirname;
 try { for (const l of fs.readFileSync(path.join(ROOT, '.env'), 'utf8').split(/\r?\n/)) { const m = l.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/); if (m && !(m[1] in process.env)) process.env[m[1]] = m[2].replace(/^["']|["']$/g, ''); } } catch {}
 const ENV = process.env, PORT = +ENV.PORT || 3000, DATA = ENV.DATA_DIR || path.join(ROOT, 'data'), PUB = path.join(ROOT, 'public');
 fs.mkdirSync(DATA, { recursive: true });
+
+/* ---------- data safety: your store survives updates, pushes and redeploys ----------
+   Updating server.js or index.html never touches the data folder. But some hosts rebuild the WHOLE app folder on every push, which also
+   wipes a data folder that lives inside it. So a second copy of the database, the uploaded pictures and the login secret is kept OUTSIDE the
+   app folder (BACKUP_DIR; default: a "skinsentials22-backups" folder next to it), and if the database is ever missing at start-up, the newest
+   copy is put back automatically. On a hosted app, point DATA_DIR and BACKUP_DIR at a persistent disk or volume. */
+const BACKUP_OUT = path.resolve(ENV.BACKUP_DIR || path.join(ROOT, '..', 'skinsentials22-backups'));
+const SNAP_RE = /^store-\d{8}-\d{4,6}(-(manual|update|restore))?\.db$/;
+(() => {
+  try {
+    let recovered = false;
+    if (!fs.existsSync(path.join(DATA, 'store.db'))) {
+      let best = null;
+      for (const dir of [BACKUP_OUT, path.join(DATA, 'backups')]) { try { for (const f of fs.readdirSync(dir)) { if (!SNAP_RE.test(f)) continue; const full = path.join(dir, f), m = fs.statSync(full).mtimeMs; if (!best || m > best.m) best = { full, m }; } } catch {} }
+      if (best) { fs.copyFileSync(best.full, path.join(DATA, 'store.db')); recovered = true; console.log('DATA RECOVERY: the database was missing, so it was restored from ' + best.full + ' (saved ' + new Date(best.m).toISOString() + ').'); }
+    }
+    const sec = path.join(DATA, '.secret'), secBk = path.join(BACKUP_OUT, '.secret');
+    if (!fs.existsSync(sec) && fs.existsSync(secBk)) { fs.copyFileSync(secBk, sec); console.log('DATA RECOVERY: restored the login secret, so customers stay signed in.'); }
+    const up = path.join(BACKUP_OUT, 'uploads'), dn = path.join(DATA, 'uploads');
+    let emptyUp = true; try { emptyUp = !fs.readdirSync(dn).length; } catch {}
+    if (fs.existsSync(up) && (recovered || emptyUp)) { fs.mkdirSync(dn, { recursive: true }); let n = 0; for (const f of fs.readdirSync(up)) { const to = path.join(dn, f); if (!fs.existsSync(to)) { try { fs.copyFileSync(path.join(up, f), to); n++; } catch {} } } if (n) console.log('DATA RECOVERY: restored ' + n + ' uploaded picture(s).'); }
+  } catch (e) { console.error('Recovery check failed:', e.message); }
+  if (!ENV.DATA_DIR && path.resolve(DATA).startsWith(path.resolve(ROOT) + path.sep)) console.log('NOTE: your data folder is inside the app folder. That is fine on your own server. On a host that rebuilds the app on every push, set DATA_DIR to a persistent disk.');
+})();
 const UPLOADS = path.join(DATA, 'uploads'); fs.mkdirSync(UPLOADS, { recursive: true });
 const MAX_UPLOAD = (+ENV.MAX_UPLOAD_MB || 0) * 1048576;   // 0 = no limit set by this app (your host / disk may still have one)
 const SECRET = ENV.JWT_SECRET || (() => { const f = path.join(DATA, '.secret'); try { return fs.readFileSync(f, 'utf8'); } catch { const s = crypto.randomBytes(48).toString('hex'); fs.writeFileSync(f, s, { mode: 0o600 }); return s; } })();
-const PS_API = ENV.PAYSTACK_API || 'https://api.paystack.co', PAYSTACK = ENV.PAYSTACK_SECRET_KEY || '', SITE = (ENV.SITE_URL || `http://localhost:${PORT}`).replace(/\/$/, '');
+const PS_API = ENV.PAYSTACK_API || 'https://api.paystack.co', PAYSTACK = ENV.PAYSTACK_SECRET_KEY || '';
+let SITE = (ENV.SITE_URL || `http://localhost:${PORT}`).replace(/\/$/, '');   // can be changed from Admin > General (see applySite)
 
 /* ---------- database ---------- */
 const db = new DatabaseSync(path.join(DATA, 'store.db'));
@@ -47,6 +72,46 @@ if (!db.prepare("SELECT 1 FROM settings WHERE k='seeded'").get()) {   // the sta
 const DEFAULTS = { bank_name: '', account_number: '', account_name: '', extra_accounts: '[]', pay_off: '', cod_note: '', ship_lagos: '4000', ship_other: '6500', days_lagos: '1-3', days_other: '3-7', process_time: '24 hours', free_over: '0', intl_note: '', whatsapp: '2349032078594', instagram: 'skinsentials22', announcement: '' };
 const LIMITS = { extra_accounts: 1500, pay_off: 120, cod_note: 300, ship_lagos: 9, ship_other: 9, free_over: 9, days_lagos: 6, days_other: 6, process_time: 40, intl_note: 300 };
 const getSettings = () => { const s = { ...DEFAULTS }; for (const r of db.prepare('SELECT k,v FROM settings').all()) if (r.k in DEFAULTS) s[r.k] = r.v; return s; };
+/* ---------- General settings (Admin > General): website address (domain), logo, favicon, share image, app download page ---------- */
+const SITE_DEFAULT = SITE;
+const GEN_TEXT = { store_name: 60, tagline: 120, legal_name: 80, address: 200, hours: 120, support_phone: 30, meta_title: 70, meta_desc: 160, cutoff_text: 160, mail_name: 60, mail_footer: 200, maintenance_title: 80, maintenance_msg: 400, maintenance_until: 60, legal_effective: 40, app_headline: 120, app_text: 300 };
+const GEN_EMAIL = ['support_email', 'privacy_email', 'mail_reply_to'], GEN_SOCIAL = ['facebook', 'tiktok', 'youtube', 'twitter'], GEN_NUM = ['return_days', 'refund_days', 'damage_hours', 'ack_days', 'resolve_days'];
+const LEGAL_IDS = ['terms', 'privacy', 'shipping', 'returns', 'cancellation', 'payments', 'cookies', 'safety', 'promos', 'referral', 'contact'];
+const GEN_DEF = Object.fromEntries(['site_url', 'logo', 'favicon', 'og_image', 'app_ios', 'app_android', 'app_apk', 'app_image', 'app_qr', 'ga_id', 'fb_pixel', 'gsc_file', 'gsc_meta', 'maintenance_on', ...Object.keys(GEN_TEXT), ...GEN_EMAIL, ...GEN_SOCIAL, ...GEN_NUM, ...LEGAL_IDS.map(i => 'legal_' + i)].map(k => [k, '']));
+const GEN_IMG = /^(\/uploads\/[\w-]+\.(jpe?g|png|webp|gif)|https:\/\/[^\s"'<>`\\]+)$/i, GEN_FILE = /^(\/uploads\/[\w.-]+|https:\/\/[^\s"'<>`\\]+)$/, GEN_LINK = /^https:\/\/[^\s"'<>`\\]+$/;
+const getGeneral = () => { let g = {}; try { g = JSON.parse((db.prepare("SELECT v FROM settings WHERE k='general'").get() || {}).v || '{}') || {}; } catch {} const o = { ...GEN_DEF }; for (const k of Object.keys(GEN_DEF)) if (typeof g[k] === 'string') o[k] = g[k]; return o; };
+const cleanSite = v => { v = String(v || '').trim().replace(/\/+$/, ''); if (!v) return ''; if (!/^https?:\/\/[a-z0-9.-]+(:\d{2,5})?$/i.test(v) || (/^http:/i.test(v) && !/^http:\/\/(localhost|127\.0\.0\.1)(:|$)/i.test(v))) return null; return v; };
+const applySite = () => { SITE = cleanSite(getGeneral().site_url) || SITE_DEFAULT; };   // the address saved in Admin > General wins over SITE_URL in .env; blank = use .env again
+applySite();
+const PRIVATE_GEN = new Set(['gsc_file', 'gsc_meta', 'mail_name', 'mail_reply_to', 'mail_footer']);
+const publicGeneral = () => { const g = getGeneral(), s = getSettings(), o = {}; for (const k of Object.keys(g)) if ((!k.startsWith('legal_') || k === 'legal_effective') && !PRIVATE_GEN.has(k)) o[k] = g[k]; o.site_url = SITE; o.whatsapp = s.whatsapp; o.instagram = s.instagram; o.legal_custom = LEGAL_IDS.filter(i => g['legal_' + i]); return o; };
+const maintOn = () => getGeneral().maintenance_on === '1';
+/* things added to every page the server sends: the live domain, tracking tags, Search Console tag, home page title and description */
+const OLD_DOMAIN = 'https://skinsentials22.com.ng';
+const absUrl = u => !u ? '' : /^https?:/i.test(u) ? u : /^data:/i.test(u) ? '' : SITE + (u[0] === '/' ? '' : '/') + u;
+const escA = v => String(v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+const phoneIntl = v => { const x = String(v || '').replace(/[^\d+]/g, ''); return x.startsWith('+') ? x : x.startsWith('0') ? '+234' + x.slice(1) : '+' + x; };
+function injectHtml(h, home) {
+  const g = getGeneral(), end = h.indexOf('</head>'); if (end < 0) return h;
+  let head = h.slice(0, end); const rest = h.slice(end);
+  if (SITE !== OLD_DOMAIN) head = head.split(OLD_DOMAIN).join(SITE);
+  head = head.replace(/(<script type="application\/ld\+json" id="sk-ld-base">)([\s\S]*?)(<\/script>)/, (m, a, j, c) => { try {
+    const o = JSON.parse(j), org = (o['@graph'] || []).find(x => x && x['@type'] === 'Organization'); if (!org) return m; const s = getSettings();
+    if (g.store_name) org.name = g.store_name; if (g.support_email) org.email = g.support_email; if (g.support_phone) org.telephone = phoneIntl(g.support_phone); if (g.logo) org.logo = absUrl(g.logo);
+    const same = [s.instagram ? 'https://www.instagram.com/' + s.instagram : '', ...GEN_SOCIAL.map(k => g[k])].filter(Boolean); if (GEN_SOCIAL.some(k => g[k])) org.sameAs = same;
+    return a + JSON.stringify(o).replace(/</g, '\\u003c') + c; } catch { return m; } });
+  if (home) {
+    const swap = (re, v) => { head = head.replace(re, (m, a, b) => a + escA(v) + b); };
+    if (g.meta_title) { head = head.replace(/<title>[\s\S]*?<\/title>/, () => '<title>' + escA(g.meta_title) + '</title>'); swap(/(<meta property="og:title" content=")[^"]*(")/, g.meta_title); swap(/(<meta name="twitter:title" content=")[^"]*(")/, g.meta_title); }
+    if (g.meta_desc) { swap(/(<meta name="description" content=")[^"]*(")/, g.meta_desc); swap(/(<meta property="og:description" content=")[^"]*(")/, g.meta_desc); swap(/(<meta name="twitter:description" content=")[^"]*(")/, g.meta_desc); }
+    if (g.og_image) { swap(/(<meta property="og:image" content=")[^"]*(")/, absUrl(g.og_image)); swap(/(<meta name="twitter:image" content=")[^"]*(")/, absUrl(g.og_image)); }
+  }
+  let add = '';
+  if (g.gsc_meta) add += `<meta name="google-site-verification" content="${escA(g.gsc_meta)}">`;
+  if (g.ga_id) add += `<script async src="https://www.googletagmanager.com/gtag/js?id=${g.ga_id}"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${g.ga_id}');</script>`;
+  if (g.fb_pixel) add += `<script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${g.fb_pixel}');fbq('track','PageView');</script>`;
+  return head + add + rest;
+}
 /* Paystack secret: the .env value wins; otherwise the key saved from Admin > Settings (never sent back to the browser) */
 const psKey = () => PAYSTACK || (db.prepare("SELECT v FROM settings WHERE k='paystack_secret'").get() || {}).v || '';
 const psInfo = () => { const k = psKey(); return { configured: !!k, source: PAYSTACK ? 'env' : k ? 'admin' : 'none', mode: k.startsWith('sk_live') ? 'live' : k ? 'test' : '', hint: k ? k.slice(0, 7) + '...' + k.slice(-4) : '' }; };
@@ -105,18 +170,37 @@ function subscribe(email, name) {
   db.prepare('INSERT INTO subscribers(email,name,token,created) VALUES(?,?,?,?)').run(email, name, crypto.randomBytes(18).toString('hex'), now()); return true;
 }
 
+/* ---------- in-app notifications: the bell and the Notifications tab in the customer profile ---------- */
+db.exec(`CREATE TABLE IF NOT EXISTS notifications(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, type TEXT NOT NULL DEFAULT 'info', title TEXT NOT NULL, body TEXT NOT NULL DEFAULT '', link TEXT NOT NULL DEFAULT '', created INTEGER NOT NULL, seen INTEGER NOT NULL DEFAULT 0, dedupe TEXT);
+CREATE INDEX IF NOT EXISTS notif_user ON notifications(user_id, id);
+CREATE UNIQUE INDEX IF NOT EXISTS notif_dedupe ON notifications(user_id, dedupe) WHERE dedupe IS NOT NULL;`);
+function inbox(uid, type, title, body, link, dedupe) {   // never throws: a failed notification must never break an order or a payment
+  try {
+    if (!uid) return;   // guest orders have no account, so there is nobody to notify
+    db.prepare('INSERT OR IGNORE INTO notifications(user_id,type,title,body,link,created,seen,dedupe) VALUES(?,?,?,?,?,?,0,?)').run(uid, String(type || 'info').slice(0, 20), String(title || '').slice(0, 140), String(body || '').slice(0, 400), String(link || '').slice(0, 30), now(), dedupe ? String(dedupe).slice(0, 80) : null);
+    db.prepare('DELETE FROM notifications WHERE user_id=? AND id NOT IN (SELECT id FROM notifications WHERE user_id=? ORDER BY id DESC LIMIT 100)').run(uid, uid);   // each customer keeps their newest 100
+  } catch (e) { console.error('Notification not saved:', e.message); }
+}
+/* the search-engine pinger (further down) plugs in here, so saving a product or post can tell it straight away */
+const SEOQ = { ping() {} };
+
 /* ---------- notifications (all optional; configured in .env) ---------- */
 const TG = { token: ENV.TELEGRAM_BOT_TOKEN || '', chat: ENV.TELEGRAM_CHAT_ID || '', api: ENV.TELEGRAM_API || 'https://api.telegram.org' };
 const MAILCFG = { key: ENV.RESEND_API_KEY || '', from: ENV.MAIL_FROM || '', admin: ENV.ADMIN_EMAIL || '', api: ENV.RESEND_API || 'https://api.resend.com' };
-const HOOK = ENV.NOTIFY_WEBHOOK_URL || '';
+let HOOK = ENV.NOTIFY_WEBHOOK_URL || '';
 const mailOn = () => !!(MAILCFG.key && MAILCFG.from);
 const notifyStatus = () => ({ telegram: !!(TG.token && TG.chat), webhook: !!HOOK, adminEmail: mailOn() && !!MAILCFG.admin, customerEmail: mailOn() });
+/* email + alert settings saved in Admin > General (settings key 'comms'); a value saved there overrides .env, empty falls back to .env */
+const commsRaw = () => { try { return JSON.parse((db.prepare("SELECT v FROM settings WHERE k='comms'").get() || {}).v || '{}') || {}; } catch { return {}; } };
+const applyComms = () => { const o = commsRaw(), pick = (k, e) => (typeof o[k] === 'string' && o[k]) || e || ''; TG.token = pick('tg_token', ENV.TELEGRAM_BOT_TOKEN); TG.chat = pick('tg_chat', ENV.TELEGRAM_CHAT_ID); MAILCFG.key = pick('mail_key', ENV.RESEND_API_KEY); MAILCFG.from = pick('mail_from', ENV.MAIL_FROM); MAILCFG.admin = pick('admin_email', ENV.ADMIN_EMAIL); HOOK = pick('webhook', ENV.NOTIFY_WEBHOOK_URL); };
+applyComms();
 const hx = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 async function postJson(url, body, headers = {}) {
   let r; try { r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body), signal: AbortSignal.timeout(10000) }); } catch (e) { throw new Error('could not reach ' + new URL(url).host); }
   if (!r.ok) throw new Error(new URL(url).host + ' answered HTTP ' + r.status); return r;
 }
-const sendMail = (to, subject, html) => mailOn() && to ? postJson(MAILCFG.api + '/emails', { from: MAILCFG.from, to: [to], subject, html }, { Authorization: 'Bearer ' + MAILCFG.key }).then(() => true) : Promise.resolve(false);
+const mailFrom = () => { const nm = String(getGeneral().mail_name || '').replace(/[<>"\r\n]/g, '').trim(); return nm && MAILCFG.from && !/</.test(MAILCFG.from) ? `${nm} <${MAILCFG.from}>` : MAILCFG.from; };   // sender name from Admin > General
+const sendMail = (to, subject, html) => mailOn() && to ? postJson(MAILCFG.api + '/emails', { from: mailFrom(), to: [to], subject, html, ...(getGeneral().mail_reply_to ? { reply_to: getGeneral().mail_reply_to } : {}) }, { Authorization: 'Bearer ' + MAILCFG.key }).then(() => true) : Promise.resolve(false);
 async function notifyAdmin(title, lines) {
   const text = [title, ...lines].join('\n'), jobs = [];
   if (TG.token && TG.chat) jobs.push(postJson(`${TG.api}/bot${TG.token}/sendMessage`, { chat_id: TG.chat, text }));
@@ -124,7 +208,7 @@ async function notifyAdmin(title, lines) {
   if (mailOn() && MAILCFG.admin) jobs.push(sendMail(MAILCFG.admin, title, `<p>${lines.map(hx).join('<br>')}</p>`));
   const rs = await Promise.allSettled(jobs); rs.forEach(r => r.status === 'rejected' && console.error('Admin notification failed:', r.reason.message)); return rs.every(r => r.status === 'fulfilled') && jobs.length > 0;
 }
-const mailShell = (h, body) => `<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#1b2a3a"><h2 style="font-family:Georgia,serif">SKINSENTIALS22</h2><h3>${h}</h3>${body}<p style="color:#778;font-size:12px;margin-top:24px">Questions? Reply to this email or message us on WhatsApp.</p></div>`;
+const mailShell = (h, body) => { const g = getGeneral(); return `<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#1b2a3a"><h2 style="font-family:Georgia,serif">${hx(g.store_name || 'SKINSENTIALS22')}</h2><h3>${h}</h3>${body}<p style="color:#778;font-size:12px;margin-top:24px">${hx(g.mail_footer || 'Questions? Reply to this email or message us on WhatsApp.')}</p></div>`; };
 const linesHtml = o => `<table style="width:100%;border-collapse:collapse;font-size:14px">${JSON.parse(o.items).map(i => `<tr><td style="padding:4px 0">${i.qty} × ${hx(i.name)}</td><td style="text-align:right">${naira(i.price * i.qty)}</td></tr>`).join('')}${o.glow_disc ? `<tr><td style="padding:4px 0">Glow Friend offer</td><td style="text-align:right">-${naira(o.glow_disc)}</td></tr>` : ''}${o.discount ? `<tr><td style="padding:4px 0">Referral offer</td><td style="text-align:right">-${naira(o.discount)}</td></tr>` : ''}${o.credit_used ? `<tr><td style="padding:4px 0">Store credit</td><td style="text-align:right">-${naira(o.credit_used)}</td></tr>` : ''}${o.shipping ? `<tr><td style="padding:4px 0">Delivery</td><td style="text-align:right">${naira(o.shipping)}</td></tr>` : ''}<tr><td style="padding-top:8px;border-top:1px solid #ddd"><b>Total</b></td><td style="text-align:right;border-top:1px solid #ddd"><b>${naira(o.total)}</b></td></tr></table>`;
 const quiet = p => { Promise.resolve(p).catch(e => console.error('Background task failed:', e.message)); };
 /* referral programme (see referral.js). Hooks are fenced so a referral problem can never break an order or a payment. */
@@ -154,6 +238,7 @@ function settle(o, i = {}) {
     db.prepare('UPDATE orders SET paid=1, paid_at=? WHERE id=?').run(t, o.id);
     ev(p.id, 'paid', `${naira(got)} received via ${label(o.method)}${i.channel ? ' (' + i.channel + ')' : ''}${i.by && i.by !== 'paystack' ? ', confirmed by ' + i.by : ''}`, 1);
   });
+  inbox(o.user_id, 'payment', `Payment received for ${oid(o)}`, `Thank you! We received ${naira(got)} and we are getting your order ready.`, 'orders', 'paid:' + o.id);
   refHook('onPaid', o);
   quiet(notifyAdmin(`💰 Payment received: ${naira(got)}`, [`Order ${oid(o)} · ${o.customer}`, `Method: ${label(o.method)}${i.channel ? ' (' + i.channel + ')' : ''}`, `Reference: ${o.ref}`]));
   quiet(sendMail(o.email, `Payment received for order ${oid(o)}`, mailShell('Thank you! We have received your payment.', `<p>Hi ${hx(o.customer)}, your order <b>${oid(o)}</b> is confirmed and we are getting it ready.</p>${linesHtml(o)}${GLOW.note(o)}<p>Delivery to: ${hx(o.address)}${o.state ? ', ' + hx(o.state) : ''}</p><p style="color:#778">Reference ${hx(o.ref)}</p>`)));
@@ -187,6 +272,7 @@ function cancelOrder(o, why) {
   tx(() => { db.prepare("UPDATE orders SET status='Cancelled' WHERE id=?").run(o.id); if (p && ['pending', 'review', 'mismatch'].includes(p.status)) { db.prepare("UPDATE payments SET status='cancelled', updated=? WHERE id=?").run(now(), p.id); ev(p.id, 'cancelled', why || 'Order cancelled'); } });
   if (!p || p.status !== 'paid') restock(db.prepare('SELECT * FROM orders WHERE id=?').get(o.id));
   refHook('onReverse', o, why || 'Order cancelled', 'void');
+  inbox(o.user_id, 'order', `Order ${oid(o)} was cancelled`, 'The items were released. If you already paid, please contact us about your refund.', 'orders', 'cancel:' + o.id);
 }
 function dmLinks(o, s) {
   const lines = JSON.parse(o.items).map(i => `${i.qty}x ${i.name}`).join(', ');
@@ -211,6 +297,37 @@ const routes = [];
 const route = (method, p, opts, fn) => { if (typeof opts === 'function') { fn = opts; opts = {}; } routes.push({ method, re: new RegExp('^' + p.replace(/:(\w+)/g, '(?<$1>[^/]+)') + '$'), opts, fn }); };
 const stockMap = () => new Map(db.prepare('SELECT product_id, qty FROM stock').all().map(r => [r.product_id, r.qty]));
 const productsAll = () => { const st = stockMap(); return db.prepare('SELECT data FROM products ORDER BY pos').all().map(r => { const p = JSON.parse(r.data); delete p.stock; if (st.has(p.id)) p.stock = st.get(p.id); return p; }); };
+/* ---------- discounts: manual sale prices and automatic rules (Admin > Discounts & Points) ----------
+   The product's own price is never changed. A sale price lives in settings key 'pricing'; the server works out the price customers pay
+   (manual sale first, then the best automatic rule) and uses it for the shop, orders, Glow points, referral offers, search data and the Google feed. */
+let GLOWPTS = null;   // filled in by the Glow Rewards section below
+const PRC_DATE = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/;
+const prcClean = c => {
+  c = c && typeof c === 'object' ? c : {}; const o = { on: c.on !== false, round_to: [10, 50, 100, 500].includes(+c.round_to) ? +c.round_to : 0, rules: [], manual: {} };
+  const dt = v => { v = String(v || '').trim(); return PRC_DATE.test(v) ? v : ''; };
+  if (Array.isArray(c.rules)) o.rules = c.rules.slice(0, 50).map((r, i) => { r = r || {}; const type = r.type === 'amt' ? 'amt' : 'pct', v = Math.round(+r.value) || 0; return { id: str(r.id, 30) || 'r' + (i + 1), name: str(r.name, 60) || 'Discount', on: r.on !== false, scope: ['category', 'brand'].includes(r.scope) ? r.scope : 'all', match: str(r.match, 300), type, value: type === 'pct' ? Math.min(95, Math.max(0, v)) : Math.min(1e7, Math.max(0, v)), start: dt(r.start), end: dt(r.end), badge: str(r.badge, 30) }; }).filter(r => r.value > 0);
+  if (c.manual && typeof c.manual === 'object') for (const [k, m] of Object.entries(c.manual).slice(0, 5000)) { if (k.length > 64 || !m || typeof m !== 'object') continue; const sale = Math.round(+m.sale) || 0, e = { sale: sale > 0 && sale <= 1e8 ? sale : 0, start: dt(m.start), end: dt(m.end), off: !!m.off, label: str(m.label, 30) }; if (e.sale || e.off) o.manual[k] = e; }
+  return o;
+};
+const pricingCfg = () => { try { return prcClean(JSON.parse((db.prepare("SELECT v FROM settings WHERE k='pricing'").get() || {}).v || 'null')); } catch { return prcClean(null); } };
+const watMs = (s, end) => { s = String(s || ''); if (!PRC_DATE.test(s)) return null; const t = Date.parse(s.slice(0, 10) + 'T' + (s.length > 10 ? s.slice(11) + ':00' : end ? '23:59:59' : '00:00:00') + '+01:00'); return Number.isNaN(t) ? null : t; };   // dates are Lagos time (UTC+1)
+const inWin = (m, t) => { const a = watMs(m.start, false), b = watMs(m.end, true); return (a === null || t >= a) && (b === null || t <= b); };
+const ruleHit = (r, p) => { if (r.scope === 'all') return true; const set = String(r.match || '').toLowerCase().split(',').map(x => x.trim()).filter(Boolean); if (!set.length) return false; const vals = r.scope === 'brand' ? [p.brand] : [p.category, p.categoryLabel, p.dept, p.deptLabel, p.tag]; return vals.some(v => v && set.includes(String(v).toLowerCase())); };
+const ruleStatus = (r, t) => !r.on ? 'off' : (watMs(r.start, false) !== null && t < watMs(r.start, false)) ? 'scheduled' : (watMs(r.end, true) !== null && t > watMs(r.end, true)) ? 'ended' : 'active';
+function saleFor(p, pc, t) {
+  pc = pc || pricingCfg(); t = t || Date.now(); if (!pc.on) return null;
+  const reg = Math.round(+p.price) || 0; if (reg <= 0) return null; const m = pc.manual[p.id];
+  if (m && m.sale > 0 && m.sale < reg && inWin(m, t)) return { price: m.sale, was: reg, pct: Math.max(1, Math.round((1 - m.sale / reg) * 100)), src: 'manual', label: m.label || '', endsAt: watMs(m.end, true) };
+  if (m && m.off) return null;   // "no automatic discounts for this product"
+  let best = null;
+  for (const r of pc.rules) {
+    if (!r.on || !inWin(r, t) || !ruleHit(r, p)) continue;
+    let np = r.type === 'amt' ? reg - r.value : reg * (1 - r.value / 100); np = pc.round_to > 1 ? Math.round(np / pc.round_to) * pc.round_to : Math.round(np);
+    if (np <= 0 || np >= reg) continue; if (!best || np < best.price) best = { price: np, was: reg, pct: Math.max(1, Math.round((1 - np / reg) * 100)), src: 'auto', label: r.badge || r.name, endsAt: watMs(r.end, true) };
+  }
+  return best;
+}
+const pricedAll = () => { const pc = pricingCfg(), t = Date.now(); return productsAll().map(p => { const s = saleFor(p, pc, t); return s ? { ...p, price: s.price, was: s.was, salePct: s.pct } : p; }); };
 const getRev = k => +((db.prepare('SELECT v FROM settings WHERE k=?').get(k) || {}).v || 0);
 const bumpRev = k => { const n = getRev(k) + 1; db.prepare('INSERT INTO settings VALUES(?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v').run(k, String(n)); return n; };
 const sha = x => crypto.createHash('sha256').update(String(x)).digest('hex');
@@ -231,18 +348,37 @@ const zoneOf = st => st === 'Lagos' ? 'lagos' : st === INTL ? 'intl' : NG_STATES
 
 const money0 = (v, d) => { const n = parseInt(v, 10); return Number.isFinite(n) && n >= 0 ? n : d; };
 const daysOk = (v, d) => /^\d{1,2}(-\d{1,2})?$/.test(String(v || '').trim()) ? String(v).trim() : d;
-const deliveryCfg = s => ({ lagos: { fee: money0(s.ship_lagos, 4000), days: daysOk(s.days_lagos, '1-3') }, other: { fee: money0(s.ship_other, 6500), days: daysOk(s.days_other, '3-7') }, processing: s.process_time || '24 hours', freeOver: money0(s.free_over, 0), intlNote: s.intl_note || 'International orders: please contact us on WhatsApp for shipping rates.' });
+const deliveryCfg = s => ({ lagos: { fee: money0(s.ship_lagos, 4000), days: daysOk(s.days_lagos, '1-3') }, other: { fee: money0(s.ship_other, 6500), days: daysOk(s.days_other, '3-7') }, processing: s.process_time || '24 hours', freeOver: money0(s.free_over, 0), intlNote: s.intl_note || 'International orders: please contact us on WhatsApp for shipping rates.', cutoff: getGeneral().cutoff_text || '' });
 const shipFor = (s, zone, sub, physical) => { const d = deliveryCfg(s); return physical && (zone === 'lagos' || zone === 'other') && !(d.freeOver && sub >= d.freeOver) ? d[zone].fee : 0; };
-const etaText = (s, zone) => { const d = deliveryCfg(s); return `Orders are processed within ${d.processing}. Delivery takes ${zone === 'lagos' ? d.lagos.days + ' working days within Lagos' : d.other.days + ' working days outside Lagos'}.`; };
+const etaText = (s, zone) => { const d = deliveryCfg(s); return `Orders are processed within ${d.processing}. Delivery takes ${zone === 'lagos' ? d.lagos.days + ' working days within Lagos' : d.other.days + ' working days outside Lagos'}.${d.cutoff ? ' ' + d.cutoff : ''}`; };
 const csvCell = v => { let t = String(v == null ? '' : v); if (/^[=+\-@\t\r]/.test(t)) t = "'" + t; return '"' + t.replace(/"/g, '""') + '"'; };   // the leading quote stops spreadsheet formula injection
 const contentRaw = () => { try { return JSON.parse((db.prepare("SELECT v FROM settings WHERE k='content'").get() || {}).v || 'null'); } catch { return null; } };
 
 route('GET', '/api/health', () => ({ ok: true }));
 route('GET', '/api/config', () => {
   const s = getSettings(), methods = Object.entries(PM).filter(([, m]) => !m.hidden).map(([id, m]) => { const st = methodState(id, s); return { id, label: m.label, desc: m.desc, group: m.manual ? 'direct' : 'online', available: st.ok, reason: st.reason || '' }; });
-  return { paystack: !!psKey(), transfer: methodState('transfer', s).ok, dm: methodState('dm', s).ok, methods, whatsapp: s.whatsapp, instagram: s.instagram, announcement: s.announcement, codNote: s.cod_note, email: mailOn(), delivery: { ...deliveryCfg(s), states: NG_STATES, intl: INTL } };
+  return { paystack: !!psKey(), transfer: methodState('transfer', s).ok, dm: methodState('dm', s).ok, methods, whatsapp: s.whatsapp, instagram: s.instagram, announcement: s.announcement, codNote: s.cod_note, email: mailOn(), delivery: { ...deliveryCfg(s), states: NG_STATES, intl: INTL }, general: publicGeneral() };
 });
-route('GET', '/api/products', () => { const products = productsAll(); return { products, rev: getRev('products_rev'), featured: FEATURED.ids(products) }; });
+route('GET', '/api/products', () => {
+  const products = productsAll(), pc = pricingCfg(), t = Date.now(), sales = {};   // product.price stays the regular price; sales[id] is what customers pay now
+  for (const p of products) { const s = saleFor(p, pc, t); if (s) sales[p.id] = { price: s.price, was: s.was, pct: s.pct, endsAt: s.endsAt, label: s.label }; }
+  let pts = {}; try { pts = GLOWPTS ? GLOWPTS.all(products, sales) : {}; } catch {}
+  return { products, rev: getRev('products_rev'), featured: FEATURED.ids(products), sales, pts };
+});
+/* admin: one call gives everything the Discounts & Points page needs */
+route('GET', '/api/admin/pricing', { auth: 'admin' }, () => {
+  const pc = pricingCfg(), t = Date.now(), prods = productsAll();
+  const rows = prods.map(p => { const s = saleFor(p, pc, t), price = Math.round(+p.price) || 0; return { id: p.id, name: p.name, price, category: p.categoryLabel || p.category || '', brand: p.brand || '', keys: [p.category, p.categoryLabel, p.dept, p.deptLabel, p.tag].filter(Boolean).map(x => String(x).toLowerCase()), hidden: !!(p.hidden || p.draft), sale: s ? { price: s.price, pct: s.pct, src: s.src, label: s.label, endsAt: s.endsAt } : null, pts: GLOWPTS ? GLOWPTS.detail(p, s ? s.price : price) : null }; });
+  const rules = pc.rules.map(r => ({ ...r, status: ruleStatus(r, t), count: prods.filter(p => ruleHit(r, p)).length }));
+  return { cfg: pc, rules, rows, glowOn: GLOWPTS ? GLOWPTS.on() : false, brands: [...new Set(prods.map(p => p.brand).filter(Boolean))].sort(), categories: [...new Set(prods.map(p => p.categoryLabel || p.category).filter(Boolean))].sort(), now: new Date(t).toISOString() };
+});
+route('PUT', '/api/admin/pricing', { auth: 'admin', big: true }, ({ body }) => {
+  const c = prcClean(body), regs = new Map(productsAll().map(p => [p.id, p]));
+  for (const k of Object.keys(c.manual)) { const p = regs.get(k); if (!p) { delete c.manual[k]; continue; } const m = c.manual[k]; if (m.sale && m.sale >= Math.round(+p.price)) throw new HttpError(400, `The sale price of ${p.name} must be lower than its regular price (${naira(Math.round(+p.price))}).`); if (m.start && m.end && watMs(m.start, false) > watMs(m.end, true)) throw new HttpError(400, `The sale of ${p.name} ends before it starts.`); }
+  for (const r of c.rules) if (r.start && r.end && watMs(r.start, false) > watMs(r.end, true)) throw new HttpError(400, `The rule "${r.name}" ends before it starts.`);
+  db.prepare("INSERT INTO settings VALUES('pricing',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v").run(JSON.stringify(c)); try { SEOQ.ping(); } catch {}
+  return { ok: true, manual: Object.keys(c.manual).length, rules: c.rules.length };
+});
 route('GET', '/api/brands', () => ({ brands: Object.fromEntries(db.prepare('SELECT name, logo FROM brands').all().map(r => [r.name, r.logo])) }));
 route('GET', '/api/content', () => { const c = contentRaw(); return c ? { has: true, slides: c.slides || null, posts: (c.posts || []).filter(p => p.pub), bar: c.bar || '', interval: c.interval, overlay: c.overlay, guides: Array.isArray(c.guides) ? c.guides : null, guideOn: c.guideOn !== false, guideSecs: c.guideSecs || 6 } : { has: false }; });
 
@@ -257,6 +393,7 @@ route('POST', '/api/auth/register', { limit: ['reg', 8] }, ({ body }) => {
   const id = db.prepare('INSERT INTO users(name,email,phone,address,pw,created) VALUES(?,?,?,?,?,?)').run(name, email, phone, address, hashPw(pw), now()).lastInsertRowid;
   if (body.newsletter) subscribe(email, name);
   const u = db.prepare('SELECT * FROM users WHERE id=?').get(id);
+  inbox(id, 'welcome', 'Welcome to Skinsentials22', 'Your account is ready. Order updates, payment confirmations and rewards will show up here.', '', 'welcome');
   return { token: userToken(u), user: userOut(u) };
 });
 route('POST', '/api/auth/login', { limit: ['login', 10] }, ({ body }) => {
@@ -278,7 +415,7 @@ route('PATCH', '/api/auth/me', { auth: 'user' }, ({ user, body }) => {
 route('POST', '/api/auth/password', { auth: 'user', limit: ['pw', 6] }, ({ user, body }) => {
   if (!checkPw(String(body.current || ''), user.pw)) throw new HttpError(401, 'Current password is incorrect.');
   const n = String(body.password || ''); if (n.length < 8 || n.length > 128) throw new HttpError(400, 'New password must be 8 to 128 characters.');
-  db.prepare('UPDATE users SET pw=? WHERE id=?').run(hashPw(n), user.id); return { ok: true, token: userToken(db.prepare('SELECT * FROM users WHERE id=?').get(user.id)) };
+  db.prepare('UPDATE users SET pw=? WHERE id=?').run(hashPw(n), user.id); inbox(user.id, 'security', 'Your password was changed', 'If this was not you, reset your password straight away and contact us.', ''); return { ok: true, token: userToken(db.prepare('SELECT * FROM users WHERE id=?').get(user.id)) };
 });
 /* forgot password: emails a one-hour link when email sending is set up (RESEND_API_KEY); always answers the same so it never reveals who has an account */
 route('POST', '/api/auth/forgot', { limit: ['forgot', 5] }, ({ body }) => {
@@ -294,6 +431,7 @@ route('POST', '/api/auth/reset', { limit: ['reset', 8] }, ({ body }) => {
   const pw = String(body.password || ''); if (pw.length < 8 || pw.length > 128) throw new HttpError(400, 'Password must be 8 to 128 characters.');
   const r = db.prepare('SELECT * FROM resets WHERE hash=?').get(sha(String(body.token || ''))); if (!r || r.exp < now()) throw new HttpError(400, 'This reset link has expired or was already used. Please request a new one.');
   db.prepare('UPDATE users SET pw=? WHERE id=?').run(hashPw(pw), r.user_id); db.prepare('DELETE FROM resets WHERE user_id=?').run(r.user_id);
+  inbox(r.user_id, 'security', 'Your password was reset', 'If this was not you, contact us straight away.', '');
   const u = db.prepare('SELECT * FROM users WHERE id=?').get(r.user_id); return { token: userToken(u), user: userOut(u) };
 });
 
@@ -329,7 +467,7 @@ route('POST', '/api/orders', { auth: 'optional', limit: ['order', 10] }, async (
   const customer = str(c.name, 80), email = str(c.email, 254).toLowerCase(), phone = str(c.phone, 30), address = str(c.address, 400);
   if (!customer || !emailOk(email) || !phone || !address) throw new HttpError(400, 'Please fill in all delivery details.');
   if (!Array.isArray(body.items) || !body.items.length || body.items.length > 50) throw new HttpError(400, 'Your bag is empty.');
-  const prods = new Map(productsAll().map(p => [p.id, p])), lines = []; let total = 0, count = 0;
+  const prods = new Map(pricedAll().map(p => [p.id, p])), lines = []; let total = 0, count = 0;
   for (const it of body.items) {
     const qty = Math.floor(+it.qty); if (!(qty >= 1 && qty <= 20)) throw new HttpError(400, 'Invalid quantity.');
     let line;
@@ -370,10 +508,14 @@ route('POST', '/api/orders', { auth: 'optional', limit: ['order', 10] }, async (
   else if (method === 'transfer') { const accs = accountsOf(s); out.bank = { ...accs[0], narration: ref }; out.accounts = accs; }
   else if (method === 'cod') out.cod = { note: s.cod_note || '' };
   else out.dm = dmLinks(o, s);
+  inbox(o.user_id, 'order', `Order ${oid(o)} received`, `We have your order of ${naira(total)}. ` + (method === 'transfer' ? `Transfer exactly ${naira(total)} using reference ${ref}. We confirm it as soon as the money arrives.` : method === 'cod' ? 'You will pay on delivery. We will confirm your order shortly.' : method === 'dm' ? 'We will confirm your order with you on chat shortly.' : 'It is confirmed as soon as your payment goes through.'), 'orders', 'new:' + o.id);
   quiet(notifyAdmin(`🛒 New order ${oid(o)}: ${naira(total)}`, [`${customer} · ${phone}`, `Pay by: ${label(method)}`, `Items: ${lines.map(l => l.qty + 'x ' + l.name).join(', ')}`, `Deliver to: ${address}`, `Ref: ${ref}`]));
   if (PM[method].manual) quiet(sendMail(email, `We received your order ${oid(o)}`, mailShell('Thank you for your order!', `<p>Hi ${hx(customer)}, we have your order <b>${oid(o)}</b>.</p>${linesHtml(o)}${GLOW.note(o)}${physical ? `<p style="color:#556">${hx(etaText(s, zone))}</p>` : ''}${method === 'transfer' ? `<p><b>Please transfer ${naira(total)}</b> to one of these accounts using <b>${hx(ref)}</b> as the narration:</p>${out.accounts.map(a => `<p style="background:#f4f1ea;padding:10px;border-radius:8px">${hx(a.bank_name)}<br><b>${hx(a.account_number)}</b><br>${hx(a.account_name)}</p>`).join('')}<p>Then tap "I have made the transfer" on the website and we will confirm.</p>` : method === 'cod' ? `<p>You will pay <b>${naira(total)}</b> when it arrives. We will call to confirm delivery.</p>` : '<p>Please continue the chat with us on WhatsApp or Instagram to agree payment.</p>'}`)));
   return out;
 });
+route('GET', '/api/notifications', { auth: 'user' }, ({ user }) => ({ notifications: db.prepare('SELECT id,type,title,body,link,created,seen FROM notifications WHERE user_id=? ORDER BY id DESC LIMIT 50').all(user.id).map(n => ({ ...n, seen: !!n.seen })), unread: db.prepare('SELECT COUNT(*) n FROM notifications WHERE user_id=? AND seen=0').get(user.id).n }));
+route('POST', '/api/notifications/read', { auth: 'user', limit: ['nread', 60] }, ({ user, body }) => { if (body && body.id) db.prepare('UPDATE notifications SET seen=1 WHERE user_id=? AND id=?').run(user.id, (+body.id) | 0); else db.prepare('UPDATE notifications SET seen=1 WHERE user_id=?').run(user.id); return { ok: true }; });
+route('POST', '/api/notifications/clear', { auth: 'user', limit: ['nclear', 20] }, ({ user }) => { db.prepare('DELETE FROM notifications WHERE user_id=?').run(user.id); return { ok: true }; });
 route('GET', '/api/orders/mine', { auth: 'user' }, ({ user }) => ({ orders: db.prepare(ORDER_SQL + ' WHERE o.user_id=? ORDER BY o.id DESC LIMIT 100').all(user.id).map(orderOut) }));   // by account only: an email address alone never unlocks anyone's orders
 route('GET', '/api/orders/:ref/verify', { limit: ['verify', 20] }, async ({ params }) => {
   const o = orderBy(params.ref); if (!o) throw new HttpError(404, 'Order not found');
@@ -419,6 +561,7 @@ route('PATCH', '/api/admin/orders/:id', { auth: 'admin' }, ({ params, body }) =>
     if (!['Pending', 'Shipped', 'Delivered', 'Cancelled'].includes(body.status)) throw new HttpError(400, 'Invalid status');
     if (o.status === 'Cancelled' && body.status !== 'Cancelled') throw new HttpError(409, 'A cancelled order cannot be reopened (its stock was released). Ask the customer to place a new order.');
     if (body.status === 'Cancelled') { if (o.status !== 'Cancelled') cancelOrder(o, 'Order cancelled by admin'); } else db.prepare('UPDATE orders SET status=? WHERE id=?').run(body.status, o.id);
+    if (['Shipped', 'Delivered'].includes(body.status) && o.status !== body.status) { const fo = db.prepare('SELECT * FROM orders WHERE id=?').get(o.id); inbox(fo.user_id, 'order', body.status === 'Shipped' ? `Order ${oid(fo)} is on its way` : `Order ${oid(fo)} was delivered`, body.status === 'Shipped' ? 'Your order has been handed over for delivery. Please keep your phone close.' : 'Your order is marked as delivered. We hope you love it. A review helps other shoppers.', 'orders', 'st:' + fo.id + ':' + body.status); }
   }
   if (typeof body.paid === 'boolean') { const fresh = db.prepare('SELECT * FROM orders WHERE id=?').get(o.id); if (body.paid) { if (fresh.status === 'Cancelled') throw new HttpError(409, 'This order is cancelled.'); settle(fresh, { by: 'admin' }); } else unsettle(fresh); }
   return { order: orderOut(adminOrder(params.id)) };
@@ -443,7 +586,7 @@ route('PUT', '/api/admin/products', { auth: 'admin', big: true }, ({ body }) => 
     if (p.usageSteps != null) p.usageSteps = (Array.isArray(p.usageSteps) ? p.usageSteps : []).map(x => plainTxt(x, 500)).filter(Boolean).slice(0, 20);
     if (Array.isArray(p.videos)) p.hasVideo = p.hasVideo || p.videos.length > 0; }
   const rev = tx(() => { db.exec('DELETE FROM products'); const ins = db.prepare('INSERT INTO products VALUES(?,?,?)'); list.forEach((p, i) => ins.run(p.id, i, JSON.stringify(p))); for (const r of db.prepare('SELECT product_id FROM stock').all()) if (!seen.has(r.product_id)) db.prepare('DELETE FROM stock WHERE product_id=?').run(r.product_id); return bumpRev('products_rev'); });
-  return { ok: true, count: list.length, rev };
+  SEOQ.ping(); return { ok: true, count: list.length, rev };
 });
 /* stock lives in its own table so a busy shop and an open admin page never overwrite each other's numbers; blank = unlimited */
 route('PUT', '/api/admin/stock', { auth: 'admin' }, ({ body }) => {
@@ -463,7 +606,7 @@ route('PUT', '/api/admin/content', { auth: 'admin', big: true }, ({ body }) => {
   const guides = body.guides == null ? null : (Array.isArray(body.guides) ? body.guides.slice(0, 30).map(g => ({ id: str(g && g.id, 40) || 'g' + now(), title: str(g && g.title, 120), kicker: str(g && g.kicker, 60), video: vidOk(g && g.video) ? g.video : '', poster: urlOk(g && g.poster) ? g.poster : '', pid: str(g && g.pid, 60) })).filter(g => g.video || g.poster) : null);
   const posts = (Array.isArray(body.posts) ? body.posts : []).slice(0, 200).map(p => ({ id: str(p && p.id, 40) || 'b' + now(), title: str(p && p.title, 160), cat: str(p && p.cat, 60), date: +(p && p.date) || now(), pub: !!(p && p.pub), cover: urlOk(p && p.cover) ? p.cover : '', excerpt: str(p && p.excerpt, 400), body: str(p && p.body, 30000) })).filter(p => p.title && p.body);
   const c = { slides: slides && slides.length ? slides : null, guides, guideOn: body.guideOn !== false, guideSecs: Math.min(30, Math.max(3, Math.round(+body.guideSecs) || 6)), posts, bar: str(body.bar, 300), interval: Math.min(60, Math.max(2, Math.round(+body.interval) || 5)), overlay: Math.min(0.95, Math.max(0, +body.overlay >= 0 ? +body.overlay : 0.78)) };
-  db.prepare("INSERT INTO settings VALUES('content',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v").run(JSON.stringify(c)); return { ok: true, rev: bumpRev('content_rev') };
+  db.prepare("INSERT INTO settings VALUES('content',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v").run(JSON.stringify(c)); SEOQ.ping(); return { ok: true, rev: bumpRev('content_rev') };
 });
 
 /* ---- payments: everything customers pay is recorded here for the admin ---- */
@@ -516,6 +659,7 @@ route('POST', '/api/admin/payments/:id/reject', { auth: 'admin' }, ({ params, bo
   const p = payRow(params.id); if (!['pending', 'review', 'mismatch'].includes(p.status)) throw new HttpError(409, 'Only unpaid payments can be marked as not received.');
   const note = str(body.note, 300);
   tx(() => { db.prepare("UPDATE payments SET status='failed', note=?, updated=? WHERE id=?").run(note, now(), p.id); db.prepare('UPDATE orders SET claimed=0 WHERE id=?').run(p.order_id); ev(p.id, 'failed', 'Marked as not received by admin' + (note ? ': ' + note : '')); });
+  { const fo = db.prepare('SELECT * FROM orders WHERE id=?').get(p.order_id); if (fo) inbox(fo.user_id, 'payment', `We could not find your payment for ${oid(fo)}`, 'If you have paid, please send your receipt to us on WhatsApp and we will check again.', 'orders'); }
   return payDetail(p.id);
 });
 route('POST', '/api/admin/payments/:id/recheck', { auth: 'admin', limit: ['recheck', 30] }, async ({ params }) => {
@@ -527,7 +671,7 @@ route('POST', '/api/admin/payments/:id/refund', { auth: 'admin', limit: ['refund
   const note = str(body.note, 300); let how = 'Refund recorded (send the money back yourself)';
   if (!PM[p.method].manual) { await paystack('POST', '/refund', { transaction: p.ref }); how = 'Refund sent through Paystack (the customer is credited within a few days)'; }
   tx(() => { db.prepare("UPDATE payments SET status='refunded', note=COALESCE(NULLIF(?,''),note), updated=? WHERE id=?").run(note, now(), p.id); db.prepare("UPDATE orders SET status='Cancelled', paid=0 WHERE id=?").run(o.id); ev(p.id, 'refunded', `${naira(p.amount)} refunded. ${how}${note ? '. ' + note : ''}`, 1); });
-  restock(db.prepare('SELECT * FROM orders WHERE id=?').get(o.id)); refHook('onReverse', o, 'Order refunded', 'void'); return payDetail(p.id);
+  restock(db.prepare('SELECT * FROM orders WHERE id=?').get(o.id)); refHook('onReverse', o, 'Order refunded', 'void'); inbox(o.user_id, 'payment', `Refund for ${oid(o)}`, PM[p.method].manual ? `We are sending ${naira(p.amount)} back to you. Please contact us if it has not arrived in 2 working days.` : `Your refund of ${naira(p.amount)} was sent. It reaches your account within a few days.`, 'orders', 'refund:' + o.id); return payDetail(p.id);
 });
 /* the dashboard polls this for live alerts: new orders, payments received, transfers to confirm, mismatches */
 route('GET', '/api/admin/events', { auth: 'admin' }, ({ query }) => {
@@ -542,7 +686,7 @@ route('POST', '/api/admin/notify/test', { auth: 'admin', limit: ['ntest', 5] }, 
 });
 route('GET', '/api/admin/backup', { auth: 'admin' }, () => {
   const strip = r => { const { pw, ...x } = r; return x; };
-  return { file: { name: 'skinsentials22-backup-' + new Date().toISOString().slice(0, 10) + '.json', type: 'application/json', data: JSON.stringify({ exported: new Date().toISOString(), products: productsAll(), stock: [...stockMap()], orders: db.prepare('SELECT * FROM orders ORDER BY id').all(), payments: db.prepare('SELECT * FROM payments ORDER BY id').all(), payment_events: db.prepare('SELECT * FROM payment_events ORDER BY id').all(), users: db.prepare('SELECT * FROM users').all().map(strip), subscribers: db.prepare('SELECT * FROM subscribers').all(), brands: db.prepare('SELECT * FROM brands').all(), settings: getSettings(), content: contentRaw(), glow: Object.fromEntries(['glow_ledger', 'glow_claims', 'glow_codes', 'glow_refs'].map(t => [t, db.prepare('SELECT * FROM ' + t).all()])), referral: Object.fromEntries(['ref_versions', 'ref_codes', 'ref_people', 'ref_orders', 'ref_ledger', 'ref_events', 'ref_flags', 'ref_audit'].map(t => [t, db.prepare('SELECT * FROM ' + t).all()])) }, null, 1) } };
+  return { file: { name: 'skinsentials22-backup-' + new Date().toISOString().slice(0, 10) + '.json', type: 'application/json', data: JSON.stringify({ exported: new Date().toISOString(), products: productsAll(), stock: [...stockMap()], orders: db.prepare('SELECT * FROM orders ORDER BY id').all(), payments: db.prepare('SELECT * FROM payments ORDER BY id').all(), payment_events: db.prepare('SELECT * FROM payment_events ORDER BY id').all(), users: db.prepare('SELECT * FROM users').all().map(strip), subscribers: db.prepare('SELECT * FROM subscribers').all(), brands: db.prepare('SELECT * FROM brands').all(), settings: getSettings(), general: getGeneral(), pricing: pricingCfg(), content: contentRaw(), glow: Object.fromEntries(['glow_ledger', 'glow_claims', 'glow_codes', 'glow_refs'].map(t => [t, db.prepare('SELECT * FROM ' + t).all()])), referral: Object.fromEntries(['ref_versions', 'ref_codes', 'ref_people', 'ref_orders', 'ref_ledger', 'ref_events', 'ref_flags', 'ref_audit'].map(t => [t, db.prepare('SELECT * FROM ' + t).all()])) }, null, 1) } };
 });
 
 /* brands (name -> logo) */
@@ -564,6 +708,79 @@ route('POST', '/api/admin/upload', { auth: 'admin', stream: true }, async ({ req
   try { await pipeline(req, count, fs.createWriteStream(tmp)); if (!n) throw new HttpError(400, 'The file is empty.'); fs.renameSync(tmp, path.join(UPLOADS, file)); }
   catch (e) { fs.rm(tmp, { force: true }, () => {}); throw e; }
   return { url: '/uploads/' + file, size: n, kind };
+});
+/* documents (app file, PDF, spreadsheet) go through their own upload route so the picture/video route keeps its strict list */
+const DOC_EXT = new Set(['.apk', '.pdf', '.zip', '.xlsx', '.csv', '.txt']);
+route('POST', '/api/admin/upload-file', { auth: 'admin', stream: true }, async ({ req, query }) => {
+  const ext = path.extname(str(query.get('name'), 200)).toLowerCase();
+  if (!DOC_EXT.has(ext)) throw new HttpError(400, 'Unsupported file type. Use APK, PDF, ZIP, XLSX, CSV or TXT.');
+  if (MAX_UPLOAD && +req.headers['content-length'] > MAX_UPLOAD) throw new HttpError(413, `File is larger than the ${ENV.MAX_UPLOAD_MB} MB limit set on the server.`);
+  const file = crypto.randomBytes(12).toString('hex') + ext, tmp = path.join(UPLOADS, file + '.part'); let n = 0;
+  const count = new Transform({ transform(c, _, cb) { n += c.length; MAX_UPLOAD && n > MAX_UPLOAD ? cb(new HttpError(413, `File is larger than the ${ENV.MAX_UPLOAD_MB} MB limit set on the server.`)) : cb(null, c); } });
+  try { await pipeline(req, count, fs.createWriteStream(tmp)); if (!n) throw new HttpError(400, 'The file is empty.'); fs.renameSync(tmp, path.join(UPLOADS, file)); }
+  catch (e) { fs.rm(tmp, { force: true }, () => {}); throw e; }
+  return { url: '/uploads/' + file, size: n, kind: 'file' };
+});
+const generalOut = () => { const s = getSettings(); return { general: { ...getGeneral(), whatsapp: s.whatsapp, instagram: s.instagram }, site: SITE, siteDefault: SITE_DEFAULT, siteFromEnv: !!ENV.SITE_URL }; };
+route('GET', '/api/admin/general', { auth: 'admin' }, () => generalOut());
+route('PUT', '/api/admin/general', { auth: 'admin', big: true }, ({ body }) => {
+  const cur = getGeneral(), next = { ...cur }, bad = m => { throw new HttpError(400, m); }; let wa = null, ig = null;
+  if (body.site_url != null) { const u = cleanSite(body.site_url); if (u === null) bad('The website address must look like https://www.yourdomain.com (no spaces, no page path). Plain http is only allowed for localhost.'); next.site_url = u; }
+  for (const k of ['logo', 'favicon', 'og_image', 'app_image', 'app_qr']) if (body[k] != null) { const v = String(body[k]).trim().slice(0, 600); if (v && !GEN_IMG.test(v)) bad('Pictures must be an uploaded JPG, PNG, WebP or GIF, or an https link.'); next[k] = v; }
+  if (body.app_apk != null) { const v = String(body.app_apk).trim().slice(0, 600); if (v && !GEN_FILE.test(v)) bad('The app file must be an uploaded file or an https link.'); next.app_apk = v; }
+  for (const k of ['app_ios', 'app_android']) if (body[k] != null) { const v = String(body[k]).trim().slice(0, 600); if (v && !GEN_LINK.test(v)) bad('Store links must start with https://'); next[k] = v; }
+  for (const [k, n] of Object.entries(GEN_TEXT)) if (body[k] != null) next[k] = str(body[k], n);
+  for (const k of GEN_EMAIL) if (body[k] != null) { const v = str(body[k], 254).toLowerCase(); if (v && !emailOk(v)) bad('That email address does not look right.'); next[k] = v; }
+  for (const k of GEN_SOCIAL) if (body[k] != null) { const v = String(body[k]).trim().slice(0, 300); if (v && !GEN_LINK.test(v)) bad('Social links must start with https://'); next[k] = v; }
+  for (const k of GEN_NUM) if (body[k] != null) { const v = String(body[k]).trim(); if (v && !/^\d{1,3}$/.test(v)) bad('Day and hour counts must be whole numbers.'); next[k] = v; }
+  if (body.ga_id != null) { const v = String(body.ga_id).trim().toUpperCase(); if (v && !/^G-[A-Z0-9]{4,14}$/.test(v)) bad('A Google Analytics ID looks like G-XXXXXXXXXX.'); next.ga_id = v; }
+  if (body.fb_pixel != null) { const v = String(body.fb_pixel).trim(); if (v && !/^\d{6,20}$/.test(v)) bad('A Meta Pixel ID is a number of 6 to 20 digits.'); next.fb_pixel = v; }
+  if (body.gsc_file != null) { let v = String(body.gsc_file).trim().replace(/^\//, '').toLowerCase(); if (v && !v.endsWith('.html')) v += '.html'; if (v && !/^google[a-f0-9]{8,40}\.html$/.test(v)) bad('The Search Console file name looks like google0123456789abcdef.html'); next.gsc_file = v; }
+  if (body.gsc_meta != null) { const v = String(body.gsc_meta).trim(); if (v && !/^[\w-]{20,100}$/.test(v)) bad('Paste only the content value of the Search Console verification tag (letters, numbers, - and _).'); next.gsc_meta = v; }
+  if (body.maintenance_on != null) next.maintenance_on = (body.maintenance_on === true || body.maintenance_on === 1 || body.maintenance_on === '1') ? '1' : '';
+  for (const id of LEGAL_IDS) if (body['legal_' + id] != null) next['legal_' + id] = String(body['legal_' + id]).replace(/\r\n?/g, '\n').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '').trim().slice(0, 30000);
+  if (body.whatsapp != null) { wa = String(body.whatsapp).replace(/\D/g, ''); if (wa && !/^\d{8,15}$/.test(wa)) bad('WhatsApp number: digits with country code, for example 2349012345678.'); }
+  if (body.instagram != null) { ig = String(body.instagram).trim().replace(/^@/, '').replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/[/?].*$/, ''); if (ig && !/^[\w.]{1,30}$/.test(ig)) bad('Instagram: enter just the username.'); }
+  const up = db.prepare('INSERT INTO settings VALUES(?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v');
+  tx(() => { up.run('general', JSON.stringify(next)); if (wa !== null) up.run('whatsapp', wa); if (ig !== null) up.run('instagram', ig); });
+  applySite(); try { SEOQ.ping(); } catch {}
+  return { ...generalOut(), siteChanged: next.site_url !== cur.site_url };
+});
+/* text of policies the owner rewrote in Admin > General (the website falls back to the built-in wording for any left empty) */
+route('GET', '/api/legal', { limit: ['legal', 60] }, () => { const g = getGeneral(), custom = {}; for (const id of LEGAL_IDS) if (g['legal_' + id]) custom[id] = g['legal_' + id]; return { custom, effective: g.legal_effective }; });
+/* email sender and alert channels. Secrets are never sent back to the browser. */
+const COMMS_SECRET = { tg_token: /^\d{5,12}:[\w-]{30,}$/, mail_key: /^[\w-]{10,200}$/, webhook: /^https:\/\/[^\s"'<>`\\]{8,500}$/ };
+const COMMS_PLAIN = { tg_chat: /^(-?\d{3,20}|@\w{4,64})$/, mail_from: /^([^<>@\r\n"]{1,60}<)?[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}>?$/, admin_email: null };
+const commsOut = () => { const o = commsRaw(), envv = { tg_token: ENV.TELEGRAM_BOT_TOKEN, tg_chat: ENV.TELEGRAM_CHAT_ID, mail_key: ENV.RESEND_API_KEY, mail_from: ENV.MAIL_FROM, admin_email: ENV.ADMIN_EMAIL, webhook: ENV.NOTIFY_WEBHOOK_URL }, out = { status: notifyStatus(), fields: {} };
+  for (const k of [...Object.keys(COMMS_SECRET), ...Object.keys(COMMS_PLAIN)]) { const saved = typeof o[k] === 'string' && o[k], live = saved || envv[k] || '', secret = k in COMMS_SECRET; out.fields[k] = { source: saved ? 'admin' : envv[k] ? 'env' : 'none', set: !!live, ...(secret ? { hint: live ? live.slice(0, 4) + '...' + live.slice(-3) : '' } : { value: live }) }; } return out; };
+route('GET', '/api/admin/comms', { auth: 'admin' }, () => commsOut());
+route('PUT', '/api/admin/comms', { auth: 'admin' }, ({ body }) => {
+  const o = commsRaw(), clear = Array.isArray(body.clear) ? body.clear : [], bad = m => { throw new HttpError(400, m); };
+  for (const k of [...Object.keys(COMMS_SECRET), ...Object.keys(COMMS_PLAIN)]) {
+    if (clear.includes(k)) { delete o[k]; continue; }
+    if (body[k] == null) continue; const v = String(body[k]).trim().slice(0, 600); if (!v) continue;   // empty = keep what is saved
+    if (k in COMMS_SECRET) { if (!COMMS_SECRET[k].test(v)) bad({ tg_token: 'That does not look like a Telegram bot token (it looks like 123456789:AA...).', mail_key: 'That does not look like an email API key.', webhook: 'The webhook must be an https link.' }[k]); }
+    else if (k === 'admin_email') { if (!emailOk(v.toLowerCase())) bad('The alert email address does not look right.'); }
+    else if (!COMMS_PLAIN[k].test(v)) bad({ tg_chat: 'The Telegram chat id is a number (it can start with -) or @channelname.', mail_from: 'The sender must be an address like orders@yourdomain.com, or Name <orders@yourdomain.com>.' }[k]);
+    o[k] = k === 'admin_email' ? v.toLowerCase() : v;
+  }
+  db.prepare("INSERT INTO settings VALUES('comms',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v").run(JSON.stringify(o)); applyComms(); return commsOut();
+});
+/* newsletter list: the upload that goes with Download CSV. People who unsubscribed are never added back. */
+route('POST', '/api/admin/subscribers/import', { auth: 'admin', big: true, limit: ['subimp', 10] }, ({ body }) => {
+  const text = typeof body.csv === 'string' ? body.csv.replace(/^\ufeff/, '') : ''; if (!text.trim()) throw new HttpError(400, 'The file is empty.');
+  const split = line => { const out = []; let cur = '', q = false; for (let i = 0; i < line.length; i++) { const ch = line[i]; if (q) { if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; } else if (ch === '"') q = false; else cur += ch; } else if (ch === '"') q = true; else if (ch === ',' || ch === ';' || ch === '\t') { out.push(cur.trim()); cur = ''; } else cur += ch; } out.push(cur.trim()); return out; };
+  const out = { added: 0, existing: 0, unsubscribed: 0, invalid: 0 }, seen = new Set(), sel = db.prepare('SELECT active FROM subscribers WHERE email=?'), ins = db.prepare('INSERT INTO subscribers(email,name,token,created) VALUES(?,?,?,?)');
+  const lines = text.split(/\r?\n/).filter(l => l.trim()).slice(0, 50001);
+  tx(() => { lines.forEach((line, i) => {
+    const cells = split(line), at = cells.findIndex(c => emailOk(c.toLowerCase()));
+    if (at < 0) { if (!(i === 0 && cells.some(c => /^e-?mail/i.test(c)))) out.invalid++; return; }
+    const email = cells[at].toLowerCase(); if (seen.has(email)) return; seen.add(email);
+    const ex = sel.get(email); if (ex) { out[ex.active ? 'existing' : 'unsubscribed']++; return; }
+    const nm = cells.slice(at + 1).find(c => c && c.length <= 80 && !emailOk(c.toLowerCase()) && !/^(\d+|true|false|\d{4}-\d\d-\d\d.*)$/i.test(c)) || '';
+    ins.run(email, str(nm, 80), crypto.randomBytes(18).toString('hex'), now()); out.added++;
+  }); });
+  return out;
 });
 route('GET', '/api/admin/subscribers', { auth: 'admin' }, () => ({ subscribers: db.prepare('SELECT id,email,name,active,created FROM subscribers ORDER BY id DESC').all() }));
 route('GET', '/api/admin/subscribers.csv', { auth: 'admin' }, () => ({ csv: 'email,name,active,subscribed\n' + db.prepare('SELECT * FROM subscribers WHERE active=1 ORDER BY id').all().map(r => [r.email, r.name, r.active, new Date(r.created).toISOString()].map(csvCell).join(',')).join('\n'), name: 'subscribers.csv' }));
@@ -712,6 +929,7 @@ const roBy = oid => db.prepare('SELECT * FROM ref_orders WHERE order_id=?').get(
 function notify(uid, ev, amount) {
   const c = cfg(), u = db.prepare('SELECT name,email FROM users WHERE id=?').get(uid), n = c.notify[ev]; if (!u || !n || !n.on) return;
   const fill = s => s.replace(/\{\{name\}\}/g, u.name.split(' ')[0]).replace(/\{\{amount\}\}/g, naira(amount || 0)).replace(/\{\{support\}\}/g, c.support || 'our support team');
+  inbox(uid, 'referral', fill(n.subject || TPL[ev][0]), fill(n.body || TPL[ev][1]), 'referral');
   quiet(sendMail(u.email, fill(n.subject || TPL[ev][0]), mailShell(fill(n.subject || TPL[ev][0]), `<p>${hx(fill(n.body || TPL[ev][1]))}</p>`)));   // transactional only, sent to the account holder
 }
 /* ---- hooks called by server.js ---- */
@@ -896,7 +1114,7 @@ route('GET', '/api/admin/referral/export.csv', A, ({ query }) => {
 route('GET', '/api/admin/referral/audit', A, () => ({ rows: db.prepare('SELECT at,actor,action,target,reason,detail FROM ref_audit ORDER BY id DESC LIMIT 200').all() }));
 return { price, attach, onPaid, onReverse, release, isLive, buildLines, balance };
 };
-REF = referralInit({ db, route, tx, now, str, HttpError, naira, csvCell, hx, sendMail, mailShell, quiet, productsAll, shipFor, zoneOf, getSettings, PM, crypto, SITE, mailOn, SECRET });
+REF = referralInit({ db, route, tx, now, str, HttpError, naira, csvCell, hx, sendMail, mailShell, quiet, productsAll: pricedAll, shipFor, zoneOf, getSettings, PM, crypto, get SITE() { return SITE; }, mailOn, SECRET });
 
 /* ---------- automatic safety snapshots: your products, posts, orders and customers are copied before anything else runs ----------
    A copy of the whole database is saved in data/backups every 6 hours at most (the 14 newest are kept). Updating server.js or index.html never touches data/. */
@@ -908,6 +1126,29 @@ REF = referralInit({ db, route, tx, now, str, HttpError, naira, csvCell, hx, sen
     if (Date.now() - last > 6 * 36e5) snap(); setInterval(() => { try { snap(); } catch {} }, 6 * 36e5).unref();
     console.log(`Safety copy: ${db.prepare('SELECT COUNT(*) n FROM products').get().n} products are in the store.`);
   } catch (e) { console.error('Snapshot setup failed:', e.message); }
+})();
+
+/* ---------- second copy outside the app folder (see "data safety" near the top) ----------
+   Every 3 hours, and again when the app is told to stop (which is what happens just before an update or redeploy): the database, any new
+   uploaded pictures and the login secret are copied to BACKUP_DIR. Nothing is ever deleted from there except the oldest database copies (12 are kept). */
+(() => {
+  const run = force => {
+    try {
+      const up = path.join(BACKUP_OUT, 'uploads'); fs.mkdirSync(up, { recursive: true });
+      const have = fs.readdirSync(BACKUP_OUT).filter(f => SNAP_RE.test(f)).map(f => ({ f, m: fs.statSync(path.join(BACKUP_OUT, f)).mtimeMs })).sort((a, b) => a.m - b.m);
+      if (force || !have.length || Date.now() - have[have.length - 1].m > 3 * 36e5) {
+        const d = new Date(), z = n => String(n).padStart(2, '0'), f = path.join(BACKUP_OUT, `store-${d.getUTCFullYear()}${z(d.getUTCMonth() + 1)}${z(d.getUTCDate())}-${z(d.getUTCHours())}${z(d.getUTCMinutes())}.db`);
+        if (!fs.existsSync(f)) { db.exec(`VACUUM INTO '${f.replace(/'/g, "''")}'`); have.push({ f: path.basename(f), m: Date.now() }); }
+        have.slice(0, Math.max(0, have.length - 12)).forEach(x => { try { fs.unlinkSync(path.join(BACKUP_OUT, x.f)); } catch {} });
+      }
+      for (const f of fs.readdirSync(UPLOADS)) { if (f.endsWith('.part')) continue; const a = path.join(UPLOADS, f), b = path.join(up, f); try { const s = fs.statSync(a); if (s.isFile() && (!fs.existsSync(b) || fs.statSync(b).size !== s.size)) fs.copyFileSync(a, b); } catch {} }
+      try { fs.copyFileSync(path.join(DATA, '.secret'), path.join(BACKUP_OUT, '.secret')); } catch {}
+    } catch (e) { if (!run.warned) { run.warned = true; console.error('Could not keep a copy outside the app folder (' + BACKUP_OUT + '): ' + e.message + '. Set BACKUP_DIR to a folder outside the app, ideally on another disk.'); } }
+  };
+  setTimeout(run, 15e3).unref(); setInterval(run, 3 * 36e5).unref();
+  const bye = () => { try { run(true); } catch {} process.exit(0); };
+  process.on('SIGTERM', bye); process.on('SIGINT', bye);
+  console.log('Second safety copy (database, pictures, login secret): ' + BACKUP_OUT);
 })();
 
 /* ---------- Glow Rewards: Glow Points + Glow Friend referrals ----------
@@ -970,9 +1211,20 @@ CREATE UNIQUE INDEX IF NOT EXISTS glow_refs_friend ON glow_refs(friend_key) WHER
     }
     return { points: total, detail };
   }
+  /* points one unit of a product earns: used to show "Earn N Glow Points" on every product and in Admin > Discounts & Points */
+  const unitPts = (p, price, c, ms, noOv) => {
+    const text = [p.name, p.tag, p.dept, p.deptLabel].filter(Boolean).join(' ').toLowerCase(), hit = c.mode === 'category' ? ms.find(m => m.re.some(r => r.test(text))) : null;
+    const ov = !noOv && c.overrides && Object.prototype.hasOwnProperty.call(c.overrides, p.id) ? c.overrides[p.id] : null;
+    return ov !== null ? ov : hit ? hit.pts : Math.floor(price / c.per_naira);
+  };
+  GLOWPTS = {
+    on: () => cfg().on,
+    all: (products, sales) => { const c = cfg(); if (!c.on) return {}; const ms = matcher(c), out = {}; for (const p of products) { if (!p || !p.id || p.hidden || p.draft) continue; const n = unitPts(p, (sales[p.id] || {}).price || Math.round(+p.price) || 0, c, ms); if (n > 0) out[p.id] = n; } return out; },
+    detail: (p, price) => { const c = cfg(), ms = matcher(c), manual = c.overrides && Object.prototype.hasOwnProperty.call(c.overrides, p.id) ? c.overrides[p.id] : null; return { auto: unitPts(p, price, c, ms, true), manual, now: c.on ? unitPts(p, price, c, ms) : 0 }; }
+  };
   const lineOf = items => {
     if (!Array.isArray(items) || items.length > 50) throw new HttpError(400, 'Your bag is empty.');
-    const prods = new Map(productsAll().map(p => [p.id, p])), out = [];
+    const prods = new Map(pricedAll().map(p => [p.id, p])), out = [];
     for (const it of items) {
       const qty = Math.floor(+it.qty); if (!(qty >= 1 && qty <= 20)) continue;
       if (it.giftCard) { out.push({ id: 'giftcard', name: 'Gift Card', price: Math.floor(+it.price) || 0, qty }); continue; }
@@ -1135,6 +1387,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS glow_refs_friend ON glow_refs(friend_key) WHER
     if (!['approved', 'fulfilled', 'rejected'].includes(st)) throw new HttpError(400, 'Invalid status');
     if (['fulfilled', 'rejected'].includes(cl.status)) throw new HttpError(409, 'This claim is already closed.');
     tx(() => { db.prepare('UPDATE glow_claims SET status=?, note=?, decided=? WHERE id=?').run(st, str(body.note, 300), now(), cl.id); if (st === 'rejected') ins(cl.user_id, 'refund', cl.points, 0, cl.id, 'claimrej:' + cl.id, 'Reward request declined, points returned', expiryAt(cfg())); });
+    inbox(cl.user_id, 'glow', st === 'approved' ? 'Your Glow reward was approved' : st === 'fulfilled' ? 'Your Glow reward is ready' : 'Your Glow reward request was declined', st === 'approved' ? `Your request for ${cl.tier_name} has been approved.` : st === 'fulfilled' ? `Your ${cl.tier_name} reward is complete. Enjoy!` : `We could not approve ${cl.tier_name}. Your ${cl.points} points are back in your balance.`, 'glow', 'claim:' + cl.id + ':' + st);
     return { ok: true };
   });
   route('POST', '/api/admin/glow/adjust', GA, ({ body }) => {
@@ -1178,6 +1431,22 @@ const BK = (() => {
   route('POST', '/api/admin/backups', { auth: 'admin', limit: ['bkmake', 10] }, ({ body }) => { const kind = body.kind === 'update' ? 'update' : 'manual', name = make(kind), i = info(name);
     if (kind === 'update') db.prepare("INSERT INTO settings VALUES('update_prepared',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v").run(JSON.stringify({ name, at: Date.now(), products: i.products, posts: i.posts, orders: i.orders, customers: i.customers }));
     return { backup: i, backups: list(), current: now2(), started }; });
+  /* the upload that goes with Download: a .db backup file lands in the list above, then "Restore products and posts" works on it like any other */
+  route('POST', '/api/admin/backups/upload', { auth: 'admin', stream: true, limit: ['bkup', 6] }, async ({ req }) => {
+    const cap = MAX_UPLOAD || 500 * 1048576; if (+req.headers['content-length'] > cap) throw new HttpError(413, 'That file is too large to be a backup of this store.');
+    let at = Date.now(), name = '', f = ''; const pick = () => { const t = new Date(at); name = `store-${t.getUTCFullYear()}${z(t.getUTCMonth() + 1)}${z(t.getUTCDate())}-${z(t.getUTCHours())}${z(t.getUTCMinutes())}${z(t.getUTCSeconds())}-manual.db`; f = path.join(dir, name); }; pick(); while (fs.existsSync(f)) { at += 1000; pick(); }   // two uploads in the same second get different names
+    const tmp = f + '.part';
+    let n = 0; const count = new Transform({ transform(c, _, cb) { n += c.length; n > cap ? cb(new HttpError(413, 'That file is too large to be a backup of this store.')) : cb(null, c); } });
+    try {
+      await pipeline(req, count, fs.createWriteStream(tmp)); if (!n) throw new HttpError(400, 'The file is empty.');
+      const fd = fs.openSync(tmp, 'r'), b = Buffer.alloc(16); try { fs.readSync(fd, b, 0, 16, 0); } finally { fs.closeSync(fd); }
+      if (b.toString('latin1') !== 'SQLite format 3\0') throw new HttpError(400, 'That is not a Skinsentials22 database backup. Choose a .db file made with "Download database backup".');
+      let ok = false; try { const x = new DatabaseSync(tmp); try { ok = !!x.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='products'").get() && x.prepare('PRAGMA quick_check').get().quick_check === 'ok'; } finally { x.close(); } } catch {}
+      if (!ok) throw new HttpError(400, 'That file is not a complete Skinsentials22 backup (no products table, or the file is damaged).');
+      fs.renameSync(tmp, f);
+    } catch (e) { fs.rm(tmp, { force: true }, () => {}); throw e; }
+    return { ok: true, backup: info(name), backups: list(), current: now2(), started };
+  });
   route('GET', '/api/admin/backups/:name/download', { auth: 'admin', limit: ['bkdl', 10] }, ({ params }) => ({ bin: { data: fs.readFileSync(pathOf(params.name)), name: params.name } }));
   route('POST', '/api/admin/backups/:name/restore-content', { auth: 'admin', limit: ['bkrest', 4] }, ({ params, body }) => {
     const f = pathOf(params.name); if (body.confirm !== true) throw new HttpError(400, 'Please confirm the restore.');
@@ -1295,7 +1564,7 @@ const REVIEWS = (() => {
 })();
 
 /* ---------- server ---------- */
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.webp': 'image/webp', '.gif': 'image/gif', '.txt': 'text/plain', '.mp4': 'video/mp4', '.m4v': 'video/mp4', '.mov': 'video/quicktime', '.webm': 'video/webm', '.ogv': 'video/ogg', '.jpeg': 'image/jpeg' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.webp': 'image/webp', '.gif': 'image/gif', '.txt': 'text/plain', '.mp4': 'video/mp4', '.m4v': 'video/mp4', '.mov': 'video/quicktime', '.webm': 'video/webm', '.ogv': 'video/ogg', '.jpeg': 'image/jpeg', '.apk': 'application/vnd.android.package-archive', '.pdf': 'application/pdf', '.zip': 'application/zip', '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', '.csv': 'text/csv' };
 function readBody(req, max) {
   return new Promise((ok, no) => {
     const c = []; let n = 0, done = false; const fin = (f, v) => { if (done) return; done = true; clearTimeout(timer); f(v); };
@@ -1312,6 +1581,7 @@ function serveUpload(req, res, name) {
   if (!/^[\w.-]+$/.test(name) || name.endsWith('.part') || !fs.existsSync(f)) throw new HttpError(404, 'Not found');
   const size = fs.statSync(f).size, type = MIME[path.extname(name).toLowerCase()] || 'application/octet-stream';
   const h = { 'Content-Type': type, 'Accept-Ranges': 'bytes', 'Cache-Control': 'public, max-age=31536000, immutable', 'X-Content-Type-Options': 'nosniff' };
+  if (!/^(image|video)\//.test(type)) h['Content-Disposition'] = 'attachment; filename="' + name + '"';   // documents always download, they are never shown inside the site
   const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
   let start = 0, end = size - 1, code = 200;
   if (m && (m[1] || m[2])) {
@@ -1343,21 +1613,32 @@ const SEO = (() => {
   const trim = (s, n) => { s = String(s || '').replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n - 1).replace(/\s\S*$/, '') + '…' : s; };
   const abs = u => !u ? '' : /^https?:/i.test(u) ? u : /^data:/.test(u) ? '' : SITE + (u[0] === '/' ? '' : '/') + u;
   const jsn = o => JSON.stringify(o).replace(/</g, '\\u003c');
-  const prods = () => { try { return productsAll().filter(p => p && p.id && !p.hidden && !p.draft); } catch { return []; } };
+  const prods = () => { try { return pricedAll().filter(p => p && p.id && !p.hidden && !p.draft); } catch { return []; } };
   const posts = () => { try { return ((contentRaw() || {}).posts || []).filter(p => p && p.pub && p.id); } catch { return []; } };
   const pUrl = p => `${SITE}/p/${encodeURIComponent(p.id)}/${slug(p.name)}`, bUrl = p => `${SITE}/blog/${encodeURIComponent(p.id)}/${slug(p.title)}`;
   const day = () => new Date().toISOString().slice(0, 10);
   function page(m) {
+    const oi = m.image || abs(getGeneral().og_image);   // Admin > General > Share picture
     let h; try { h = fs.readFileSync(path.join(PUB, 'index.html'), 'utf8'); } catch { return null; }
     for (const re of [/<title>[\s\S]*?<\/title>/, /<meta name="description"[^>]*>/, /<link rel="canonical"[^>]*>/, /<meta property="og:(title|description|url|type|image)"[^>]*>/g, /<meta name="twitter:(title|description|image)"[^>]*>/g]) h = h.replace(re, '');
     const tags = `<title>${e(m.title)}</title><meta name="description" content="${e(m.desc)}"><link rel="canonical" id="sk-canon" href="${e(m.url)}"><meta property="og:title" content="${e(m.title)}"><meta property="og:description" content="${e(m.desc)}"><meta property="og:url" content="${e(m.url)}"><meta property="og:type" content="${m.type || 'website'}">` +
-      (m.image ? `<meta property="og:image" content="${e(m.image)}"><meta name="twitter:image" content="${e(m.image)}">` : '') + `<meta name="twitter:title" content="${e(m.title)}"><meta name="twitter:description" content="${e(m.desc)}"><script>window.__SK_SEO__=${jsn(m.boot || { route: 'page' })};</script>`;
+      (oi ? `<meta property="og:image" content="${e(oi)}"><meta name="twitter:image" content="${e(oi)}">` : '') + `<meta name="twitter:title" content="${e(m.title)}"><meta name="twitter:description" content="${e(m.desc)}"><script>window.__SK_SEO__=${jsn(m.boot || { route: 'page' })};</script>`;
     h = h.replace('</head>', () => tags + '</head>');
     if (m.ld) h = h.replace('<script type="application/ld+json" id="sk-ld-page"></script>', () => `<script type="application/ld+json" id="sk-ld-page">${jsn(m.ld)}</script>`);
     if (m.body) h = h.replace(/(<body[^>]*>)/, (x, b) => b + '<noscript>' + m.body + '</noscript>');
-    return h;
+    return injectHtml(h);
   }
-  const links = () => '<ul>' + prods().slice(0, 200).map(p => `<li><a href="/p/${encodeURIComponent(p.id)}/${slug(p.name)}">${e(p.name)}</a> ₦${Math.round(+p.price || 0).toLocaleString('en-NG')}</li>`).join('') + '</ul>';
+  const links = (n = 200) => '<ul>' + prods().slice(0, n).map(p => `<li><a href="/p/${encodeURIComponent(p.id)}/${slug(p.name)}">${e(p.name)}</a> ₦${Math.round(+p.price || 0).toLocaleString('en-NG')}</li>`).join('') + '</ul>';
+  const plinks = (n = 100) => '<ul>' + posts().slice(0, n).map(x => `<li><a href="/blog/${encodeURIComponent(x.id)}/${slug(x.title)}">${e(x.title)}</a></li>`).join('') + '</ul>';
+  /* when each page last REALLY changed, so <lastmod> in the sitemap is honest: Google trusts that and re-reads changed pages sooner */
+  const lastmods = () => {
+    const cur = handle.urls(); let st = {}; try { st = JSON.parse(setting('seo_mod') || '{}'); } catch {}
+    const t = new Date().toISOString(), out = {}; let dirty = false;
+    for (const u of Object.keys(cur)) { if (!st[u] || st[u][0] !== cur[u]) { st[u] = [cur[u], t]; dirty = true; } out[u] = st[u][1]; }
+    for (const u of Object.keys(st)) if (!(u in cur)) { delete st[u]; dirty = true; }
+    if (dirty) keySet('seo_mod', JSON.stringify(st));
+    return out;
+  };
   const crumbs = l => ({ '@type': 'BreadcrumbList', itemListElement: l.map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c[0], item: c[1] })) });
   const nf = (res) => false;
   /* returns true when it handled the request */
@@ -1367,11 +1648,32 @@ const SEO = (() => {
   const handle = function (req, res, url) {
     const p = url.pathname, html = (code, body) => { send(res, code, req.method === 'HEAD' ? '' : body, 'text/html; charset=utf-8', { 'Cache-Control': 'no-cache' }); return true; };
     if (/^\/[a-f0-9]{32}\.txt$/.test(p) && p.slice(1, 33) === ixKey()) { send(res, 200, p.slice(1, 33), 'text/plain; charset=utf-8'); return true; }   // proves to search engines that this site owns the IndexNow key
+    { const gf = getGeneral().gsc_file; if (gf && p === '/' + gf) { send(res, 200, req.method === 'HEAD' ? '' : 'google-site-verification: ' + gf, 'text/html; charset=utf-8', { 'Cache-Control': 'no-cache' }); return true; } }   // Search Console file chosen in Admin > General
     if (p === '/googlee63d671ac0925060.html') { send(res, 200, req.method === 'HEAD' ? '' : 'google-site-verification: googlee63d671ac0925060.html', 'text/html; charset=utf-8', { 'Cache-Control': 'no-cache' }); return true; }   // Google Search Console ownership check: served directly so it works wherever the site is deployed
     if (p === '/robots.txt') { send(res, 200, `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /uploads/private/\n\nSitemap: ${SITE}/sitemap.xml\n`, 'text/plain; charset=utf-8', { 'Cache-Control': 'public, max-age=3600' }); return true; }
+    if (p === '/feed.xml') {   // submit this in Search Console too (Sitemaps): it lists the 50 newest or changed pages, so Google sees a new post fast
+      const lm = lastmods(), it = [];
+      prods().forEach(x => it.push([pUrl(x), x.name, trim(x.description, 200), lm[pUrl(x)] || new Date().toISOString()]));
+      posts().forEach(x => it.push([bUrl(x), x.title, trim(String(x.excerpt || x.body || ''), 200), lm[bUrl(x)] || new Date().toISOString()]));
+      it.sort((a, b) => String(b[3]).localeCompare(String(a[3])));
+      send(res, 200, '<?xml version="1.0" encoding="UTF-8"?><feed xmlns="http://www.w3.org/2005/Atom"><title>Skinsentials22</title><link href="' + e(SITE) + '/"/><link rel="self" href="' + e(SITE) + '/feed.xml"/><id>' + e(SITE) + '/</id><updated>' + (it.length ? it[0][3] : new Date().toISOString()) + '</updated><author><name>Skinsentials22</name></author>' + it.slice(0, 50).map(i => `<entry><title>${e(i[1])}</title><link href="${e(i[0])}"/><id>${e(i[0])}</id><updated>${i[3]}</updated><summary>${e(i[2])}</summary></entry>`).join('') + '</feed>', 'application/atom+xml; charset=utf-8', { 'Cache-Control': 'public, max-age=300' }); return true;
+    }
+    if (p === '/google-products.xml') {   // Google Merchant Center product feed (free Shopping listings): Google re-reads it on the schedule you set there
+      const items = prods().filter(x => abs(x.image) && +x.price > 0).map(x => {
+        const out = typeof x.stock === 'number' && x.stock <= 0;
+        return `<item><g:id>${e(x.id)}</g:id><title>${e(trim(x.name, 150))}</title><description>${e(trim(x.description || x.name, 1000))}</description><link>${e(pUrl(x))}</link><g:image_link>${e(abs(x.image))}</g:image_link><g:availability>${out ? 'out_of_stock' : 'in_stock'}</g:availability><g:price>${Math.round(+(x.was || x.price))}.00 NGN</g:price>${x.was ? `<g:sale_price>${Math.round(+x.price)}.00 NGN</g:sale_price>` : ''}<g:condition>new</g:condition><g:brand>${e(x.brand || 'Skinsentials22')}</g:brand>${x.category ? `<g:product_type>${e(x.category)}</g:product_type>` : ''}<g:identifier_exists>no</g:identifier_exists></item>`;
+      }).join('');
+      send(res, 200, '<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:g="http://base.google.com/ns/1.0"><channel><title>Skinsentials22</title><link>' + e(SITE) + '/</link><description>Skinsentials22 skincare products</description>' + items + '</channel></rss>', 'application/xml; charset=utf-8', { 'Cache-Control': 'public, max-age=300' }); return true;
+    }
+    if (p === '/') {   // homepage: real links to the shop, journal, newest products and posts for search engines that read the raw HTML
+      let h; try { h = fs.readFileSync(path.join(PUB, 'index.html'), 'utf8'); } catch { return false; }
+      h = h.replace(/(<body[^>]*>)/, (x, b) => b + '<noscript><nav><a href="/shop">Shop all skincare</a> <a href="/journal">Skincare journal</a> <a href="/brands">Brands</a> <a href="/skin-quiz">Skin finder quiz</a> <a href="/glow-rewards">Glow rewards</a>' + links(24) + plinks(12) + '</nav></noscript>');
+      return html(200, injectHtml(h, true));
+    }
     if (p === '/sitemap.xml') {
-      const u = (l, pr, img) => `<url><loc>${e(l)}</loc><lastmod>${day()}</lastmod><priority>${pr}</priority>${img ? `<image:image><image:loc>${e(img)}</image:loc></image:image>` : ''}</url>`;
-      send(res, 200, '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">' + u(SITE + '/', '1.0') + Object.keys(PAGES).map(k => u(SITE + k, '0.8')).join('') + prods().map(x => u(pUrl(x), '0.9', abs(x.image))).join('') + posts().map(x => u(bUrl(x), '0.6', abs(x.cover))).join('') + '</urlset>', 'application/xml; charset=utf-8', { 'Cache-Control': 'public, max-age=3600' }); return true;
+      const lm = lastmods(), top = Object.values(lm).sort().pop() || '';
+      const u = (l, pr, img, d) => `<url><loc>${e(l)}</loc>${d ? `<lastmod>${d}</lastmod>` : ''}<priority>${pr}</priority>${img ? `<image:image><image:loc>${e(img)}</image:loc></image:image>` : ''}</url>`;
+      send(res, 200, '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">' + u(SITE + '/', '1.0', '', top) + Object.keys(PAGES).map(k => u(SITE + k, '0.8', '', k === '/shop' || k === '/journal' ? top : '')).join('') + prods().map(x => u(pUrl(x), '0.9', abs(x.image), lm[pUrl(x)])).join('') + posts().map(x => u(bUrl(x), '0.6', abs(x.cover), lm[bUrl(x)])).join('') + '</urlset>', 'application/xml; charset=utf-8', { 'Cache-Control': 'public, max-age=300' }); return true;
     }
     let m;
     if ((m = /^\/p\/([^/]+)(?:\/([^/]*))?\/?$/.exec(p))) {
@@ -1394,12 +1696,12 @@ const SEO = (() => {
     const key = p.length > 1 ? p.replace(/\/$/, '') : p;
     if (PAGES[key]) {
       const [title, desc] = PAGES[key], ld = key === '/shop' ? { '@context': 'https://schema.org', '@graph': [crumbs([['Home', SITE + '/'], ['Shop', SITE + '/shop']]), { '@type': 'ItemList', itemListElement: prods().slice(0, 50).map((x, i) => ({ '@type': 'ListItem', position: i + 1, url: pUrl(x), name: x.name })) }] } : undefined;
-      const body = page({ title, desc, url: SITE + key, boot: { route: 'page' }, ld, body: `<h1>${e(title.split(' | ')[0])}</h1><p>${e(desc)}</p>${key === '/shop' ? links() : ''}<a href="/">Home</a>` });
+      const body = page({ title, desc, url: SITE + key, boot: { route: 'page' }, ld, body: `<h1>${e(title.split(' | ')[0])}</h1><p>${e(desc)}</p>${key === '/shop' ? links() : key === '/journal' ? plinks() : ''}<a href="/">Home</a>` });
       return body ? html(200, body) : false;
     }
     return false;
   };
-  handle.key = ixKey; handle.setting = setting; handle.save = keySet;
+  handle.mods = lastmods; handle.key = ixKey; handle.setting = setting; handle.save = keySet;
   handle.urls = () => { const o = {}, hs = v => crypto.createHash('sha1').update(JSON.stringify(v)).digest('hex').slice(0, 12); prods().forEach(x => { o[pUrl(x)] = hs([x.name, x.price, x.description, x.image, x.stock, x.brand, x.category]); }); posts().forEach(x => { o[bUrl(x)] = hs([x.title, x.body, x.cover]); }); return o; };
   return handle;
 })();
@@ -1412,23 +1714,26 @@ const SEO = (() => {
   if (/localhost|127\.0\.0\.1/.test(SITE) || ENV.INDEXNOW === '0') return;
   const run = async () => {
     try {
-      const cur = SEO.urls(); let known = {}; try { known = JSON.parse(SEO.setting('seo_known') || '{}'); } catch {}
+      SEO.mods(); const cur = SEO.urls(); let known = {}; try { known = JSON.parse(SEO.setting('seo_known') || '{}'); } catch {}
       const changed = Object.keys(cur).filter(u => known[u] !== cur[u]).concat(Object.keys(known).filter(u => !(u in cur))); if (!changed.length) return;
       const key = SEO.key(), r = await fetch('https://api.indexnow.org/indexnow', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify({ host: new URL(SITE).host, key, keyLocation: `${SITE}/${key}.txt`, urlList: [...new Set([SITE + '/', SITE + '/shop', ...changed.slice(0, 9000)])] }), signal: AbortSignal.timeout(15000) });
       if (r.status === 200 || r.status === 202) { SEO.save('seo_known', JSON.stringify(cur)); console.log(`Search engines told about ${changed.length} new or changed page(s).`); } else console.error('IndexNow answered', r.status, '(will retry)');
     } catch (e) { console.error('IndexNow failed (will retry):', e.message); }
   };
+  let tm; SEOQ.ping = () => { clearTimeout(tm); tm = setTimeout(run, 5e3); tm.unref(); };
   setTimeout(run, 30e3).unref(); setInterval(run, 120e3).unref();
 })();
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x'), ip = (ENV.TRUST_PROXY === '1' && String(req.headers['x-forwarded-for'] || '').split(',').pop().trim()) || req.socket.remoteAddress || '';   // last entry = the one our own proxy added; the first can be forged by the visitor
   const cors = ENV.CORS_ORIGIN ? { 'Access-Control-Allow-Origin': ENV.CORS_ORIGIN, 'Access-Control-Allow-Headers': 'Content-Type, Authorization', 'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS', Vary: 'Origin' } : {};
+  if (!url.pathname.startsWith('/api/') && !url.pathname.startsWith('/uploads/') && maintOn()) { const wh = res.writeHead.bind(res); res.writeHead = (c, h) => { if (c === 200 && h && String(h['Content-Type'] || '').startsWith('text/html')) { c = 503; h = { ...h, 'Retry-After': '3600', 'X-Robots-Tag': 'noindex' }; } return wh(c, h); }; }   // maintenance mode: pages answer 503 so Google keeps your listings
   try {
     if (url.pathname.startsWith('/api/')) {
       if (req.method === 'OPTIONS') return send(res, 204, '', 'text/plain', cors);
       const r = routes.find(r => r.method === req.method && r.re.test(url.pathname));
       if (!r) throw new HttpError(404, 'Not found');
+      if (maintOn() && req.method !== 'GET' && req.method !== 'HEAD' && !url.pathname.startsWith('/api/admin/') && url.pathname !== '/api/paystack/webhook') throw new HttpError(503, getGeneral().maintenance_msg || 'We are updating the store. Please check back soon.');   // no new orders or sign-ups; admin and the Paystack webhook keep working
       const ctx = { req, ip, params: Object.fromEntries(Object.entries(url.pathname.match(r.re).groups || {}).map(([k, v]) => { try { return [k, decodeURIComponent(v)]; } catch { throw new HttpError(400, 'Bad request'); } })), query: url.searchParams, body: {} };
       if (r.opts.limit) limit(ip, r.opts.limit[0], r.opts.limit[1]);
       if (r.opts.auth) {
@@ -1454,6 +1759,7 @@ const server = http.createServer(async (req, res) => {
     if (!f.startsWith(PUB + path.sep) || path.basename(f).startsWith('.')) throw new HttpError(404, 'Not found');
     if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) throw new HttpError(404, 'Not found');
     const ext = path.extname(f).toLowerCase();
+    if (ext === '.html' && path.basename(f) === 'index.html') return send(res, 200, injectHtml(fs.readFileSync(f, 'utf8'), url.pathname === '/'), 'text/html; charset=utf-8', { 'Cache-Control': 'no-cache' });
     return send(res, 200, fs.readFileSync(f), MIME[ext] || 'application/octet-stream', { 'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=86400' });
   } catch (e) {
     const code = e instanceof HttpError ? e.code : 500; if (code === 500) console.error(e);

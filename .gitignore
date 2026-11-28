@@ -1,4 +1,10 @@
-gitnode_modules
+# Never push your live data or secrets
 .env
-.git
 data/
+*.db
+*.db-wal
+*.db-shm
+skinsentials22-backups/
+node_modules/
+.secret
+.env 
